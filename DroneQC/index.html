@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,22 +12,39 @@
 body{
 font-family:Arial;
 background:#f2f2f2;
+margin:0;
 padding:20px;
 }
 
-.box{
+.container{
+display:flex;
+gap:10px;
+}
+
+.left{
+width:300px;
 background:white;
-padding:20px;
-max-width:1200px;
-margin:auto;
-border-radius:10px;
+padding:10px;
+border-radius:8px;
 box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+.right{
+flex:1;
+background:white;
+padding:10px;
+border-radius:8px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+h2{
+margin-top:0;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-font-size:13px;
+font-size:12px;
 }
 
 th,td{
@@ -42,29 +60,50 @@ background:#eee;
 color:red;
 }
 
+.flight{
+cursor:pointer;
+padding:5px;
+border-bottom:1px solid #ddd;
+}
+
+.flight:hover{
+background:#eee;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="box">
-
 <h2>Drone MRK QC Tool</h2>
 
-<input type="file" id="mrkfile">
+<input type="file" id="folder" webkitdirectory multiple>
 
 Threshold
 <input id="threshold" value="0.05" size="6">
 
-<button onclick="loadMRK()">Load MRK</button>
+<button onclick="loadProject()">Load Project</button>
 
 <br><br>
 
-<div id="plot" style="height:500px;"></div>
+<div class="container">
+
+<div class="left">
+
+<h3>Flight List</h3>
+
+<div id="flightList"></div>
+
+</div>
+
+<div class="right">
+
+<div id="plot" style="height:400px;"></div>
 
 <h3>QC Table</h3>
 
 <table id="table">
+
 <thead>
 <tr>
 <th>file</th>
@@ -76,24 +115,39 @@ Threshold
 <th>acc_z</th>
 </tr>
 </thead>
+
 <tbody></tbody>
+
 </table>
+
+</div>
 
 </div>
 
 <script>
 
-function loadMRK(){
+let flights={}
 
-const file=document.getElementById("mrkfile").files[0]
+function loadProject(){
 
-if(!file)return
+const files=document.getElementById("folder").files
+
+flights={}
+
+for(let file of files){
+
+if(!file.name.toUpperCase().endsWith(".MRK")) continue
+
+const path=file.webkitRelativePath
+const flight=path.split("/")[0]
+
+if(!flights[flight]) flights[flight]=[]
 
 const reader=new FileReader()
 
 reader.onload=function(e){
 
-parseMRK(e.target.result)
+parseMRK(e.target.result,flight)
 
 }
 
@@ -101,18 +155,13 @@ reader.readAsText(file)
 
 }
 
-function parseMRK(text){
+setTimeout(buildFlightList,500)
 
-const threshold=parseFloat(document.getElementById("threshold").value)
+}
+
+function parseMRK(text,flight){
 
 const lines=text.split("\n")
-
-let lat=[]
-let lon=[]
-let colors=[]
-
-const tbody=document.querySelector("#table tbody")
-tbody.innerHTML=""
 
 for(let line of lines){
 
@@ -121,39 +170,97 @@ const lonMatch=line.match(/(-?\d+\.\d+),Lon/)
 const altMatch=line.match(/(-?\d+\.\d+),Ellh/)
 const accMatch=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 
-if(!latMatch)continue
+if(!latMatch) continue
 
 const parts=line.trim().split(/\s+/)
 
 const file=parts[0]
 
-const la=parseFloat(latMatch[1])
-const lo=parseFloat(lonMatch[1])
+const lat=parseFloat(latMatch[1])
+const lon=parseFloat(lonMatch[1])
 const alt=parseFloat(altMatch[1])
 
 const ax=parseFloat(accMatch[1])
 const ay=parseFloat(accMatch[2])
 const az=parseFloat(accMatch[3])
 
-const acc=Math.max(ax,ay,az)
+if(!flights[flight]) flights[flight]=[]
 
-lat.push(la)
-lon.push(lo)
+flights[flight].push({
+
+file:file,
+lat:lat,
+lon:lon,
+alt:alt,
+ax:ax,
+ay:ay,
+az:az
+
+})
+
+}
+
+}
+
+function buildFlightList(){
+
+const div=document.getElementById("flightList")
+
+div.innerHTML=""
+
+for(let f in flights){
+
+const el=document.createElement("div")
+
+el.className="flight"
+el.innerText=f
+
+el.onclick=function(){
+
+plotFlight(f)
+
+}
+
+div.appendChild(el)
+
+}
+
+}
+
+function plotFlight(flight){
+
+const data=flights[flight]
+
+const threshold=parseFloat(document.getElementById("threshold").value)
+
+let lat=[]
+let lon=[]
+let colors=[]
+
+const tbody=document.querySelector("#table tbody")
+tbody.innerHTML=""
+
+for(let r of data){
+
+const acc=Math.max(r.ax,r.ay,r.az)
+
+lat.push(r.lat)
+lon.push(r.lon)
 
 colors.push(acc<=threshold?"green":"red")
 
 let tr=document.createElement("tr")
 
-if(acc>threshold)tr.className="red"
+if(acc>threshold) tr.className="red"
 
 tr.innerHTML=`
-<td>${file}</td>
-<td>${la}</td>
-<td>${lo}</td>
-<td>${alt}</td>
-<td>${ax}</td>
-<td>${ay}</td>
-<td>${az}</td>
+<td>${r.file}</td>
+<td>${r.lat}</td>
+<td>${r.lon}</td>
+<td>${r.alt}</td>
+<td>${r.ax}</td>
+<td>${r.ay}</td>
+<td>${r.az}</td>
 `
 
 tbody.appendChild(tr)
@@ -161,18 +268,16 @@ tbody.appendChild(tr)
 }
 
 Plotly.newPlot("plot",[{
+
 x:lon,
 y:lat,
-mode:"markers",
-marker:{
-color:colors,
-size:6
-}
+mode:"markers+lines",
+marker:{color:colors,size:6}
+
 }],{
 
 xaxis:{title:"Longitude"},
-yaxis:{title:"Latitude",scaleanchor:"x"},
-margin:{t:20}
+yaxis:{title:"Latitude",scaleanchor:"x"}
 
 })
 
@@ -182,3 +287,4 @@ margin:{t:20}
 
 </body>
 </html>
+```
