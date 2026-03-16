@@ -46,14 +46,8 @@ font-weight:bold;
 #compassContainer{
 width:220px;
 margin:auto;
+text-align:center;
 }
-
-#compass{
-width:220px;
-height:220px;
-}
-
-/* MASJID MODE */
 
 #masjidMode{
 display:none;
