@@ -12,46 +12,32 @@
 
 body{
 font-family:Arial;
-background:#f2f2f2;
 margin:0;
-padding:20px;
+background:#f2f2f2;
 }
 
-.container{
+.topbar{
+padding:10px;
+background:white;
+border-bottom:1px solid #ccc;
+}
+
+.layout{
 display:flex;
-gap:10px;
+height:calc(100vh - 60px);
 }
 
-.left{
-width:320px;
+/* QC TABLE LEFT */
+
+.qcPanel{
+width:35%;
 background:white;
-padding:10px;
-border-radius:8px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
 overflow:auto;
-height:700px;
+border-right:1px solid #ccc;
 }
 
-.right{
-flex:1;
-background:white;
-padding:10px;
-border-radius:8px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-
-.flight{
-padding:6px;
-cursor:pointer;
-border-bottom:1px solid #ddd;
-}
-
-.flight:hover{
-background:#eee;
-}
-
-.selected{
-background:#cde3ff;
+.qcPanel h3{
+margin:10px;
 }
 
 table{
@@ -69,14 +55,46 @@ padding:4px;
 color:red;
 }
 
-.highlight{
-background:#fff2a8 !important;
+.rowHighlight{
+background:#fff2a8;
 }
 
+/* RIGHT PANEL */
+
+.right{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+/* MAP */
+
 #map{
-height:450px;
-border:1px solid #ccc;
-margin-bottom:10px;
+flex:3;
+}
+
+/* FLIGHT LIST */
+
+.flightPanel{
+flex:1;
+background:white;
+border-top:1px solid #ccc;
+overflow:auto;
+padding:10px;
+}
+
+.flight{
+padding:5px;
+cursor:pointer;
+border-bottom:1px solid #eee;
+}
+
+.flight:hover{
+background:#eee;
+}
+
+.selected{
+background:#cde3ff;
 }
 
 </style>
@@ -84,7 +102,7 @@ margin-bottom:10px;
 
 <body>
 
-<h2>Drone QC Tool</h2>
+<div class="topbar">
 
 <input type="file" id="folder" webkitdirectory multiple>
 
@@ -99,21 +117,11 @@ Threshold
 Point Size
 <input type="range" id="pointSize" min="4" max="14" value="6" oninput="drawFlights()">
 
-<br><br>
-
-<div class="container">
-
-<div class="left">
-
-<h3>Flight List</h3>
-
-<div id="flightList"></div>
-
 </div>
 
-<div class="right">
+<div class="layout">
 
-<div id="map"></div>
+<div class="qcPanel">
 
 <h3>QC Table</h3>
 
@@ -138,14 +146,30 @@ Point Size
 
 </div>
 
+<div class="right">
+
+<div id="map"></div>
+
+<div class="flightPanel">
+
+<h3>Flight List</h3>
+
+<div id="flightList"></div>
+
+</div>
+
+</div>
+
 </div>
 
 <script>
 
 let flights={}
 let selectedFlights=new Set()
+
 let map
 let markers=[]
+let markerRefs={}
 let idMap={}
 let lastFlight=null
 
@@ -228,9 +252,7 @@ flights[flight].jpgs.push(file.name)
 }
 
 for(let f in flights){
-
 flights[f].jpgs.sort()
-
 }
 
 readMRK()
@@ -411,6 +433,8 @@ function drawFlights(){
 
 clearMarkers()
 
+markerRefs={}
+
 let size=document.getElementById("pointSize").value
 let threshold=parseFloat(document.getElementById("threshold").value)
 
@@ -429,7 +453,7 @@ for(let p of data){
 
 let acc=Math.max(p.ax,p.ay,p.az)
 
-let color = acc>threshold ? "red" : "lime"
+let color = acc>threshold ? "red" : "#00ff00"
 
 let el=document.createElement("div")
 
@@ -439,24 +463,22 @@ el.style.borderRadius="50%"
 el.style.background=color
 el.style.cursor="pointer"
 
-idMap[id]=p
-
-el.onclick=function(){
-
-highlightRow(id)
-
-map.flyTo({
-center:[p.lon,p.lat],
-zoom:18
-})
-
-}
-
 let marker=new maplibregl.Marker(el)
 .setLngLat([p.lon,p.lat])
 .addTo(map)
 
 markers.push(marker)
+
+markerRefs[id]=el
+
+el.onclick=function(){
+
+highlightRow(id)
+highlightPoint(id)
+
+map.flyTo({center:[p.lon,p.lat],zoom:18})
+
+}
 
 let tr=document.createElement("tr")
 
@@ -478,11 +500,9 @@ tr.innerHTML=`
 tr.onclick=function(){
 
 highlightRow(id)
+highlightPoint(id)
 
-map.flyTo({
-center:[p.lon,p.lat],
-zoom:18
-})
+map.flyTo({center:[p.lon,p.lat],zoom:18})
 
 }
 
@@ -498,19 +518,29 @@ id++
 
 function highlightRow(id){
 
-let rows=document.querySelectorAll("#table tbody tr")
-
-rows.forEach(r=>r.classList.remove("highlight"))
+document.querySelectorAll("#table tbody tr")
+.forEach(r=>r.classList.remove("rowHighlight"))
 
 let row=document.querySelector(`#table tbody tr[data-id='${id}']`)
 
 if(row){
 
-row.classList.add("highlight")
-
+row.classList.add("rowHighlight")
 row.scrollIntoView({block:"center"})
 
 }
+
+}
+
+function highlightPoint(id){
+
+for(let k in markerRefs){
+
+markerRefs[k].style.background="#00ff00"
+
+}
+
+markerRefs[id].style.background="yellow"
 
 }
 
