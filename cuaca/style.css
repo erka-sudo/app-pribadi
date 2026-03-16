@@ -11,12 +11,17 @@ color:white;
 
 #map{
 width:100%;
-height:400px;
+height:450px;
 border-radius:10px;
 margin-top:10px;
 }
 
-/* animasi hujan */
+.forecast-card{
+background:#1e293b;
+border-radius:10px;
+padding:12px;
+text-align:center;
+}
 
 .rain{
 position:fixed;
@@ -25,10 +30,10 @@ left:0;
 width:100%;
 height:100%;
 pointer-events:none;
-background-image:linear-gradient(transparent,rgba(255,255,255,0.3));
+background-image:linear-gradient(transparent,rgba(255,255,255,0.2));
 background-size:2px 20px;
 animation:rain 0.3s linear infinite;
-opacity:0.3;
+opacity:0.2;
 }
 
 @keyframes rain{
@@ -41,11 +46,4 @@ background-position:0 0;
 background-position:-100px 500px;
 }
 
-}
-
-.forecast-card{
-background:#1e293b;
-border-radius:10px;
-padding:10px;
-text-align:center;
 }
