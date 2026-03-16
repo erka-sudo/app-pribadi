@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Jadwal Shalat & Arah Kiblat</title>
+
+<link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet"/>
+<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#f3f3f3;
+}
+
+.header{
+background:#0b5ed7;
+color:white;
+padding:10px;
+text-align:center;
+font-size:18px;
+}
+
+.container{
+display:flex;
+flex-direction:column;
+height:100vh;
+}
+
+#map{
+flex:1;
+}
+
+.panel{
+background:white;
+padding:10px;
+box-shadow:0 -2px 5px rgba(0,0,0,0.2);
+}
+
+.buttons{
+display:flex;
+gap:10px;
+margin-bottom:10px;
+}
+
+button{
+padding:8px 12px;
+border:none;
+background:#0b5ed7;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#084298;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:14px;
+}
+
+td{
+padding:4px;
+border-bottom:1px solid #ddd;
+}
+
+.qibla{
+text-align:center;
+margin-top:10px;
+}
+
+#compass{
+width:120px;
+height:120px;
+border:5px solid #333;
+border-radius:50%;
+margin:auto;
+position:relative;
+}
+
+.arrow{
+width:4px;
+height:50px;
+background:red;
+position:absolute;
+top:10px;
+left:50%;
+transform-origin:bottom center;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+Jadwal Shalat & Arah Kiblat
+</div>
+
+<div class="container">
+
+<div id="map"></div>
+
+<div class="panel">
+
+<div class="buttons">
+<button onclick="getGPS()">Gunakan GPS</button>
+<button onclick="useMapPoint()">Gunakan Titik Peta</button>
+</div>
+
+<div id="locationText">Lokasi: -</div>
+
+<h3>Jadwal Shalat</h3>
+
+<table id="prayTable">
+<tr><td>Subuh</td><td id="fajr"></td></tr>
+<tr><td>Dzuhur</td><td id="dhuhr"></td></tr>
+<tr><td>Ashar</td><td id="asr"></td></tr>
+<tr><td>Maghrib</td><td id="maghrib"></td></tr>
+<tr><td>Isya</td><td id="isha"></td></tr>
+</table>
+
+<div class="qibla">
+
+<h3>Arah Kiblat</h3>
+
+<div id="compass">
+<div class="arrow" id="arrow"></div>
+</div>
+
+<div id="qiblaText"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+// =========================
+// MAP
+// =========================
+
+let map = new maplibregl.Map({
+container:"map",
+style:{
+version:8,
+sources:{
+esri:{
+type:"raster",
+tiles:[
+"https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+],
+tileSize:256
+}
+},
+layers:[
+{
+id:"esri",
+type:"raster",
+source:"esri"
+}
+]
+},
+center:[110,-2],
+zoom:5
+})
+
+let marker=null
+let selectedPoint=null
+
+map.on("click",function(e){
+
+selectedPoint=e.lngLat
+
+if(marker) marker.remove()
+
+marker=new maplibregl.Marker()
+.setLngLat(e.lngLat)
+.addTo(map)
+
+})
+
+// =========================
+// GPS
+// =========================
+
+function getGPS(){
+
+navigator.geolocation.getCurrentPosition(pos=>{
+
+let lat=pos.coords.latitude
+let lon=pos.coords.longitude
+
+setLocation(lat,lon)
+
+})
+
+}
+
+// =========================
+// MAP POINT
+// =========================
+
+function useMapPoint(){
+
+if(!selectedPoint) return alert("Klik peta dulu")
+
+setLocation(selectedPoint.lat,selectedPoint.lng)
+
+}
+
+// =========================
+// SET LOCATION
+// =========================
+
+function setLocation(lat,lon){
+
+document.getElementById("locationText").innerText=
+"Lokasi: "+lat.toFixed(5)+", "+lon.toFixed(5)
+
+map.flyTo({
+center:[lon,lat],
+zoom:14
+})
+
+calculatePrayerTimes(lat,lon)
+calculateQibla(lat,lon)
+
+}
+
+// =========================
+// PRAYER TIME
+// =========================
+
+function deg2rad(d){return d*Math.PI/180}
+function rad2deg(r){return r*180/Math.PI}
+
+function dayOfYear(d){
+let start=new Date(d.getFullYear(),0,0)
+let diff=d-start
+return Math.floor(diff/86400000)
+}
+
+function solarDeclination(n){
+
+return 23.45*Math.sin(deg2rad((360/365)*(284+n)))
+
+}
+
+function equationOfTime(n){
+
+let B=deg2rad((360/365)*(n-81))
+return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
+
+}
+
+function hourAngle(lat,dec,angle){
+
+let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
+let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
+
+return rad2deg(Math.acos(num/den))
+
+}
+
+function calculatePrayerTimes(lat,lon){
+
+let date=new Date()
+
+let n=dayOfYear(date)
+
+let dec=solarDeclination(n)
+
+let eot=equationOfTime(n)
+
+let timezone=-date.getTimezoneOffset()/60
+
+let dhuhr=12 + (timezone*15-lon)/15 - eot/60
+
+let fajr=dhuhr-hourAngle(lat,dec,-18)/15
+
+let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
+
+let isha=dhuhr+hourAngle(lat,dec,-17)/15
+
+let asr=dhuhr+Math.acos(
+(Math.sin(Math.atan(1+Math.tan(Math.abs(deg2rad(lat-dec)))))-
+Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec)))
+/
+(Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec)))
+)/15
+
+function toTime(t){
+
+let h=Math.floor(t)
+let m=Math.floor((t-h)*60)
+
+return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
+
+}
+
+document.getElementById("fajr").innerText=toTime(fajr)
+document.getElementById("dhuhr").innerText=toTime(dhuhr)
+document.getElementById("asr").innerText=toTime(asr)
+document.getElementById("maghrib").innerText=toTime(maghrib)
+document.getElementById("isha").innerText=toTime(isha)
+
+}
+
+// =========================
+// QIBLA
+// =========================
+
+const KAABA_LAT=21.4225
+const KAABA_LON=39.8262
+
+function calculateQibla(lat,lon){
+
+let dLon=deg2rad(KAABA_LON-lon)
+
+let y=Math.sin(dLon)*Math.cos(deg2rad(KAABA_LAT))
+
+let x=
+Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
+Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
+
+let bearing=(rad2deg(Math.atan2(y,x))+360)%360
+
+document.getElementById("qiblaText").innerText=
+"Arah Kiblat: "+bearing.toFixed(1)+"°"
+
+startCompass(bearing)
+
+}
+
+// =========================
+// COMPASS
+// =========================
+
+function startCompass(qibla){
+
+window.addEventListener("deviceorientationabsolute",e=>{
+
+let heading=e.alpha
+
+if(heading==null) return
+
+let angle=qibla-heading
+
+document.getElementById("arrow").style.transform=
+"rotate("+angle+"deg)"
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
