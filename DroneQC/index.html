@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -125,19 +126,32 @@ Threshold
 let flights={}
 let selectedFlights=new Set()
 
+function getFlightName(path){
+
+let parts=path.split("/")
+
+if(parts.length>2){
+return parts[parts.length-2]
+}
+
+return parts[0]
+
+}
+
 function loadProject(){
 
 const files=document.getElementById("folder").files
 
 flights={}
+selectedFlights.clear()
 
 for(let file of files){
 
 if(file.name.endsWith(".MRK")){
 
-let flight=file.webkitRelativePath.split("/")[0]
+let flight=getFlightName(file.webkitRelativePath)
 
-if(!flights[flight]) flights[flight]={mrk:null,jpgs:[]}
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[],points:[]}
 
 flights[flight].mrk=file
 
@@ -145,9 +159,9 @@ flights[flight].mrk=file
 
 if(file.name.endsWith("_V.JPG")){
 
-let flight=file.webkitRelativePath.split("/")[0]
+let flight=getFlightName(file.webkitRelativePath)
 
-if(!flights[flight]) flights[flight]={mrk:null,jpgs:[]}
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[],points:[]}
 
 flights[flight].jpgs.push(file.name)
 
@@ -167,13 +181,15 @@ readMRK()
 
 function readMRK(){
 
+let readers=[]
+
 for(let f in flights){
 
 let file=flights[f].mrk
 
 if(!file) continue
 
-const reader=new FileReader()
+let reader=new FileReader()
 
 reader.onload=function(e){
 
@@ -183,9 +199,11 @@ parseMRK(e.target.result,f)
 
 reader.readAsText(file)
 
+readers.push(reader)
+
 }
 
-setTimeout(buildFlightList,500)
+setTimeout(buildFlightList,800)
 
 }
 
@@ -193,7 +211,7 @@ function parseMRK(text,flight){
 
 const lines=text.split("\n")
 
-flights[flight].points=[]
+let points=[]
 
 for(let line of lines){
 
@@ -204,7 +222,7 @@ const acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 
 if(!lat) continue
 
-flights[flight].points.push({
+points.push({
 
 file:null,
 lat:parseFloat(lat[1]),
@@ -220,11 +238,13 @@ az:parseFloat(acc[3])
 
 let jpgs=flights[flight].jpgs
 
-for(let i=0;i<Math.min(jpgs.length,flights[flight].points.length);i++){
+for(let i=0;i<Math.min(points.length,jpgs.length);i++){
 
-flights[flight].points[i].file=jpgs[i]
+points[i].file=jpgs[i]
 
 }
+
+flights[flight].points=points
 
 }
 
@@ -240,7 +260,7 @@ let el=document.createElement("div")
 
 el.className="flight"
 
-el.innerText=f
+el.innerText=f+" ("+flights[f].points.length+")"
 
 el.onclick=function(){
 
@@ -259,13 +279,11 @@ function toggleFlight(f,el){
 if(selectedFlights.has(f)){
 
 selectedFlights.delete(f)
-
 el.classList.remove("selected")
 
 }else{
 
 selectedFlights.add(f)
-
 el.classList.add("selected")
 
 }
@@ -283,7 +301,6 @@ let colors=[]
 const threshold=parseFloat(document.getElementById("threshold").value)
 
 const tbody=document.querySelector("#table tbody")
-
 tbody.innerHTML=""
 
 for(let f of selectedFlights){
