@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
@@ -29,8 +30,8 @@ height:calc(100vh - 60px);
 
 .qcPanel{
 width:35%;
-background:white;
 overflow:auto;
+background:white;
 border-right:1px solid #ccc;
 }
 
@@ -46,16 +47,16 @@ flex:3;
 
 .flightPanel{
 flex:1;
+overflow:auto;
 background:white;
 border-top:1px solid #ccc;
-overflow:auto;
 padding:10px;
 }
 
 .flight{
 padding:6px;
-cursor:pointer;
 border-bottom:1px solid #eee;
+cursor:pointer;
 }
 
 .flight:hover{
@@ -81,11 +82,12 @@ padding:4px;
 color:red;
 }
 
-.rowHighlight{
+.highlight{
 background:#fff2a8;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -99,6 +101,7 @@ Threshold
 
 <button onclick="loadProject()">Open Project</button>
 <button onclick="zoomToFlights()">Zoom to Flight</button>
+
 <button onclick="selectAllFlights()">Select All</button>
 <button onclick="unselectAllFlights()">Unselect All</button>
 
@@ -106,6 +109,7 @@ Point Size
 <input type="range" id="pointSize" min="4" max="14" value="6">
 
 </div>
+
 
 <div class="layout">
 
@@ -134,6 +138,7 @@ Point Size
 
 </div>
 
+
 <div class="right">
 
 <div id="map"></div>
@@ -141,7 +146,6 @@ Point Size
 <div class="flightPanel">
 
 <h3>Flight List</h3>
-
 <div id="flightList"></div>
 
 </div>
@@ -150,17 +154,16 @@ Point Size
 
 </div>
 
+
+
 <script>
 
 let flights={}
 let selectedFlights=new Set()
 
 let map
-
 let markers=[]
-let markerMap={}
-let rowMap={}
-let lastFlight=null
+let rows=[]
 
 function initMap(){
 
@@ -181,6 +184,7 @@ tiles:[
 tileSize:256
 }
 },
+
 layers:[
 {
 id:"osm",
@@ -188,6 +192,7 @@ type:"raster",
 source:"osm"
 }
 ]
+
 },
 
 center:[102.77,-2.08],
@@ -200,16 +205,17 @@ zoom:14
 initMap()
 
 document.getElementById("pointSize").addEventListener("input",drawFlights)
+document.getElementById("threshold").addEventListener("input",drawFlights)
 
 function getFlightName(path){
 
 let parts=path.split("/")
 
-if(parts.length>2) return parts[parts.length-2]
-
-return parts[0]
+return parts[parts.length-2]
 
 }
+
+
 
 function loadProject(){
 
@@ -242,23 +248,15 @@ flights[flight].jpgs.push(file.name)
 
 }
 
-for(let f in flights){
-
-flights[f].jpgs.sort()
-
-}
-
 readMRK()
 
 }
 
+
+
 function readMRK(){
 
 for(let f in flights){
-
-let file=flights[f].mrk
-
-if(!file) continue
 
 let reader=new FileReader()
 
@@ -268,32 +266,33 @@ parseMRK(e.target.result,f)
 
 }
 
-reader.readAsText(file)
+reader.readAsText(flights[f].mrk)
 
 }
 
-setTimeout(buildFlightList,600)
+setTimeout(buildFlightList,500)
 
 }
+
+
 
 function parseMRK(text,flight){
 
-const lines=text.split("\n")
+let lines=text.split("\n")
 
 let points=[]
 
 for(let line of lines){
 
-const lat=line.match(/(-?\d+\.\d+),Lat/)
-const lon=line.match(/(-?\d+\.\d+),Lon/)
-const alt=line.match(/(-?\d+\.\d+),Ellh/)
-const acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
+let lat=line.match(/(-?\d+\.\d+),Lat/)
+let lon=line.match(/(-?\d+\.\d+),Lon/)
+let alt=line.match(/(-?\d+\.\d+),Ellh/)
+let acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 
 if(!lat) continue
 
 points.push({
 
-file:null,
 lat:parseFloat(lat[1]),
 lon:parseFloat(lon[1]),
 alt:parseFloat(alt[1]),
@@ -305,17 +304,11 @@ az:parseFloat(acc[3])
 
 }
 
-let jpgs=flights[flight].jpgs
-
-for(let i=0;i<Math.min(points.length,jpgs.length);i++){
-
-points[i].file=jpgs[i]
-
-}
-
 flights[flight].points=points
 
 }
+
+
 
 function buildFlightList(){
 
@@ -328,42 +321,9 @@ for(let f in flights){
 let el=document.createElement("div")
 
 el.className="flight"
-el.dataset.flight=f
-el.innerText=f+" ("+flights[f].points.length+")"
+el.innerText=f
 
-el.onclick=function(e){
-
-toggleFlight(f,el,e)
-
-}
-
-div.appendChild(el)
-
-}
-
-}
-
-function toggleFlight(f,el,event){
-
-if(event.shiftKey && lastFlight){
-
-let list=Object.keys(flights)
-
-let start=list.indexOf(lastFlight)
-let end=list.indexOf(f)
-
-let min=Math.min(start,end)
-let max=Math.max(start,end)
-
-for(let i=min;i<=max;i++){
-
-selectedFlights.add(list[i])
-
-document.querySelector(`[data-flight="${list[i]}"]`).classList.add("selected")
-
-}
-
-}else{
+el.onclick=function(){
 
 if(selectedFlights.has(f)){
 
@@ -377,63 +337,40 @@ el.classList.add("selected")
 
 }
 
-}
-
-lastFlight=f
-
 drawFlights()
 
 }
 
-function selectAllFlights(){
-
-selectedFlights.clear()
-
-document.querySelectorAll(".flight").forEach(el=>{
-
-selectedFlights.add(el.dataset.flight)
-el.classList.add("selected")
-
-})
-
-drawFlights()
+div.appendChild(el)
 
 }
 
-function unselectAllFlights(){
-
-selectedFlights.clear()
-
-document.querySelectorAll(".flight").forEach(el=>{
-
-el.classList.remove("selected")
-
-})
-
-drawFlights()
-
 }
+
+
 
 function clearMarkers(){
 
-for(let m of markers) m.remove()
+markers.forEach(m=>m.remove())
 
 markers=[]
 
-markerMap={}
-rowMap={}
+rows=[]
 
 }
+
+
 
 function drawFlights(){
 
 clearMarkers()
 
-const tbody=document.querySelector("#table tbody")
-tbody.innerHTML=""
-
 let size=document.getElementById("pointSize").value
 let threshold=parseFloat(document.getElementById("threshold").value)
+
+let tbody=document.querySelector("#table tbody")
+
+tbody.innerHTML=""
 
 let id=0
 
@@ -443,7 +380,7 @@ for(let p of flights[f].points){
 
 let acc=Math.max(p.ax,p.ay,p.az)
 
-let color = acc>threshold ? "red" : "#00ff00"
+let color = acc>threshold ? "red" : "lime"
 
 let el=document.createElement("div")
 
@@ -451,7 +388,6 @@ el.style.width=size+"px"
 el.style.height=size+"px"
 el.style.borderRadius="50%"
 el.style.background=color
-el.style.cursor="pointer"
 
 let marker=new maplibregl.Marker(el)
 .setLngLat([p.lon,p.lat])
@@ -459,14 +395,12 @@ let marker=new maplibregl.Marker(el)
 
 markers.push(marker)
 
-markerMap[id]=el
-
-el.onclick=()=>selectPoint(id,p)
-
 let tr=document.createElement("tr")
 
+if(acc>threshold) tr.classList.add("red")
+
 tr.innerHTML=`
-<td>${p.file||""}</td>
+<td>${id}</td>
 <td>${p.lat}</td>
 <td>${p.lon}</td>
 <td>${p.alt}</td>
@@ -476,13 +410,12 @@ tr.innerHTML=`
 <td>${f}</td>
 `
 
-if(acc>threshold) tr.classList.add("red")
-
-tr.onclick=()=>selectPoint(id,p)
-
 tbody.appendChild(tr)
 
-rowMap[id]=tr
+rows[id]=tr
+
+el.onclick=()=>selectPoint(id,p)
+tr.onclick=()=>selectPoint(id,p)
 
 id++
 
@@ -492,29 +425,21 @@ id++
 
 }
 
+
+
 function selectPoint(id,p){
 
-for(let k in markerMap){
+rows.forEach(r=>r.classList.remove("highlight"))
 
-markerMap[k].style.border="none"
+rows[id].classList.add("highlight")
 
-}
-
-markerMap[id].style.border="3px solid yellow"
-
-for(let r in rowMap){
-
-rowMap[r].classList.remove("rowHighlight")
-
-}
-
-rowMap[id].classList.add("rowHighlight")
-
-rowMap[id].scrollIntoView({block:"center"})
+rows[id].scrollIntoView({block:"center"})
 
 map.flyTo({center:[p.lon,p.lat],zoom:18})
 
 }
+
+
 
 function zoomToFlights(){
 
@@ -530,15 +455,34 @@ bounds.extend([p.lon,p.lat])
 
 }
 
-if(!bounds.isEmpty()){
-
 map.fitBounds(bounds,{padding:40})
 
 }
+
+
+
+function selectAllFlights(){
+
+for(let f in flights) selectedFlights.add(f)
+
+buildFlightList()
+drawFlights()
+
+}
+
+
+
+function unselectAllFlights(){
+
+selectedFlights.clear()
+
+buildFlightList()
+drawFlights()
 
 }
 
 </script>
 
 </body>
+
 </html>
