@@ -1,23 +1,7 @@
-const adzan={
-fajr:new Audio("adzan-subuh.mp3"),
-dhuhr:new Audio("adzan.mp3"),
-asr:new Audio("adzan.mp3"),
-maghrib:new Audio("adzan-maghrib.mp3"),
-isha:new Audio("adzan.mp3")
-}
-
-let timesToday={}
 let lat=0
 let lon=0
 
-document.body.addEventListener("click",()=>{
-for(let a in adzan){
-adzan[a].play().then(()=>{
-adzan[a].pause()
-adzan[a].currentTime=0
-}).catch(()=>{})
-}
-},{once:true})
+let timesToday={}
 
 let map=new maplibregl.Map({
 container:"map",
@@ -54,7 +38,7 @@ setLocation(pos.coords.latitude,pos.coords.longitude)
 }
 
 function useMapPoint(){
-if(!selectedPoint) return alert("Klik peta dulu")
+if(!selectedPoint) return
 setLocation(selectedPoint.lat,selectedPoint.lng)
 }
 
@@ -66,12 +50,15 @@ lon=b
 map.flyTo({center:[lon,lat],zoom:14})
 
 document.getElementById("locationText").innerText=
-"Lokasi: "+lat.toFixed(5)+", "+lon.toFixed(5)
+"Lokasi: "+lat.toFixed(5)+","+lon.toFixed(5)
 
 calculatePrayerTimes(new Date())
+
 calculateQibla()
 
 }
+
+/* MATEMATIKA */
 
 function deg2rad(d){return d*Math.PI/180}
 function rad2deg(r){return r*180/Math.PI}
@@ -119,26 +106,82 @@ return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
 
 timesToday={
 fajr:format(fajr),
+sunrise:format(sunrise),
 dhuhr:format(dhuhr),
 asr:format(asr),
 maghrib:format(maghrib),
 isha:format(isha)
 }
 
-document.getElementById("fajr").innerText=timesToday.fajr
-document.getElementById("sunrise").innerText=format(sunrise)
-document.getElementById("dhuhr").innerText=timesToday.dhuhr
-document.getElementById("asr").innerText=timesToday.asr
-document.getElementById("maghrib").innerText=timesToday.maghrib
-document.getElementById("isha").innerText=timesToday.isha
+for(let id in timesToday){
+if(document.getElementById(id))
+document.getElementById(id).innerText=timesToday[id]
+}
 
-let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(date)
+/* MASJID MODE */
 
-document.getElementById("calendarText").innerText=
-date.toLocaleDateString("id-ID",{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-+" | "+hijri
+document.getElementById("mfajr").innerText=timesToday.fajr
+document.getElementById("msunrise").innerText=timesToday.sunrise
+document.getElementById("mdhuhr").innerText=timesToday.dhuhr
+document.getElementById("masr").innerText=timesToday.asr
+document.getElementById("mmaghrib").innerText=timesToday.maghrib
+document.getElementById("misha").innerText=timesToday.isha
+
+highlightPrayer()
 
 }
+
+/* HIGHLIGHT WAKTU AKTIF */
+
+function highlightPrayer(){
+
+let now=new Date()
+
+let current=now.getHours()+":"+now.getMinutes()
+
+let order=["fajr","sunrise","dhuhr","asr","maghrib","isha"]
+
+for(let id of order){
+
+let cell=document.getElementById(id)
+
+if(!cell) continue
+
+if(current>=timesToday[id]){
+
+document.querySelectorAll("#prayTable td").forEach(td=>td.classList.remove("activePrayer"))
+
+cell.classList.add("activePrayer")
+
+}
+
+}
+
+}
+
+/* CLOCK MASJID */
+
+setInterval(()=>{
+
+let now=new Date()
+
+let h=now.getHours().toString().padStart(2,"0")
+let m=now.getMinutes().toString().padStart(2,"0")
+let s=now.getSeconds().toString().padStart(2,"0")
+
+document.getElementById("masjidClock").innerText=h+":"+m+":"+s
+
+},1000)
+
+function openMasjidMode(){
+document.getElementById("masjidMode").style.display="block"
+}
+
+function closeMasjidMode(){
+document.getElementById("masjidMode").style.display="none"
+}
+
+/* KIBLAT */
 
 function calculateQibla(){
 
@@ -175,25 +218,3 @@ document.getElementById("northArrow")
 })
 
 }
-
-setInterval(()=>{
-
-let now=new Date()
-
-let h=now.getHours().toString().padStart(2,'0')
-let m=now.getMinutes().toString().padStart(2,'0')
-
-let current=h+":"+m
-
-for(let p in timesToday){
-
-if(current===timesToday[p]){
-
-adzan[p].currentTime=0
-adzan[p].play().catch(()=>{})
-
-}
-
-}
-
-},5000)
