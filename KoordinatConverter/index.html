@@ -24,10 +24,6 @@ border-radius:10px;
 box-shadow:0 0 15px rgba(0,0,0,0.1);
 }
 
-h2{
-margin-top:0;
-}
-
 input,select,button{
 width:100%;
 padding:10px;
@@ -93,13 +89,9 @@ margin-top:5px;
 
 <div class="example">
 
-Example
+Example manual input
 
-Geodetic  
 -2.070877130,102.772954818
-
-UTM  
-1271017.616,119124.115
 
 </div>
 
@@ -114,9 +106,9 @@ UTM
 
 CSV example
 
-lat,lon  
--2.070877130,102.772954818  
--2.071000000,102.773200000  
+lat,lon
+-2.070877130,102.772954818
+-2.071000000,102.773200000
 
 </div>
 
@@ -128,9 +120,9 @@ lat,lon
 
 <script>
 
-// ================================
+// =====================
 // TM3 ZONE DETECTION
-// ================================
+// =====================
 
 function getTM3zone(lon){
 
@@ -144,9 +136,9 @@ return zone + part;
 
 }
 
-// ================================
+// =====================
 // TM3 PROJECTION
-// ================================
+// =====================
 
 function getTM3proj(lon){
 
@@ -159,20 +151,15 @@ return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 
 }
 
-// ================================
+// =====================
 // CONVERSION ENGINE
-// ================================
+// =====================
 
 function convertPoint(a,b,from,to){
-
-// GEO → GEO
 
 if(from==="geo" && to==="geo"){
 return a.toFixed(8)+","+b.toFixed(8);
 }
-
-
-// GEO → UTM
 
 if(from==="geo" && to==="utm"){
 
@@ -183,11 +170,7 @@ let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
 let p=proj4("EPSG:4326",proj,[b,a]);
 
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
-
 }
-
-
-// GEO → TM3
 
 if(from==="geo" && to==="tm3"){
 
@@ -198,11 +181,7 @@ let p=proj4("EPSG:4326",proj,[b,a]);
 let zone=getTM3zone(b);
 
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
-
 }
-
-
-// UTM → GEO
 
 if(from==="utm" && to==="geo"){
 
@@ -213,11 +192,7 @@ let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
 let p=proj4(proj,"EPSG:4326",[b,a]);
 
 return p[1].toFixed(8)+","+p[0].toFixed(8);
-
 }
-
-
-// TM3 → GEO
 
 if(from==="tm3" && to==="geo"){
 
@@ -226,16 +201,15 @@ let proj=getTM3proj(102);
 let p=proj4(proj,"EPSG:4326",[b,a]);
 
 return p[1].toFixed(8)+","+p[0].toFixed(8);
-
 }
 
 return "conversion not defined";
 
 }
 
-// ================================
+// =====================
 // MANUAL CONVERSION
-// ================================
+// =====================
 
 function convertManual(){
 
@@ -255,6 +229,8 @@ let p=l.split(",");
 let a=parseFloat(p[0]);
 let b=parseFloat(p[1]);
 
+if(isNaN(a)||isNaN(b)) return;
+
 let r=convertPoint(a,b,from,to);
 
 out+=l+" → "+r+"\n";
@@ -265,19 +241,23 @@ document.getElementById("result").innerText=out;
 
 }
 
-// ================================
+// =====================
 // CSV CONVERSION
-// ================================
+// =====================
 
 function convertCSV(){
 
 let file=document.getElementById("csv").files[0];
 
-if(!file)return;
+if(!file){
+alert("Pilih file CSV terlebih dahulu");
+return;
+}
 
 Papa.parse(file,{
 
 header:true,
+skipEmptyLines:true,
 
 complete:function(res){
 
@@ -287,17 +267,36 @@ let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out=[];
+let count=0;
 
 data.forEach(r=>{
 
-let a=parseFloat(r.lat || r.y);
-let b=parseFloat(r.lon || r.x);
+let lat=r.lat||r.latitude||r.y;
+let lon=r.lon||r.longitude||r.x;
 
-let conv=convertPoint(a,b,from,to);
+lat=parseFloat(lat);
+lon=parseFloat(lon);
 
-out.push(conv);
+if(isNaN(lat)||isNaN(lon)) return;
+
+let conv=convertPoint(lat,lon,from,to);
+
+out.push(lat+","+lon+" → "+conv);
+
+count++;
 
 });
+
+if(count===0){
+
+alert("Tidak ada koordinat valid di CSV.\nGunakan kolom lat,lon atau y,x");
+
+return;
+
+}
+
+document.getElementById("result").innerText=
+"Converted "+count+" points\n\n"+out.join("\n");
 
 downloadCSV(out);
 
@@ -307,9 +306,9 @@ downloadCSV(out);
 
 }
 
-// ================================
+// =====================
 // DOWNLOAD CSV
-// ================================
+// =====================
 
 function downloadCSV(rows){
 
