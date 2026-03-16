@@ -309,50 +309,46 @@ function startCompass() {
 
 if (window.DeviceOrientationEvent) {
 
-window.addEventListener("deviceorientation", function (event) {
+window.addEventListener("deviceorientationabsolute", handleOrientation, true)
+window.addEventListener("deviceorientation", handleOrientation, true)
+
+}
+
+}
+
+function handleOrientation(event) {
 
 let newHeading = null
 
-/* iOS (Safari) */
+/* iOS */
 if (event.webkitCompassHeading !== undefined) {
 
 newHeading = event.webkitCompassHeading
 
 }
 
-/* Android */
+/* Android absolute sensor */
+else if (event.absolute === true && event.alpha !== null) {
+
+newHeading = event.alpha
+
+}
+
+/* fallback */
 else if (event.alpha !== null) {
 
-let screenAngle = 0
-
-/* beberapa browser pakai ini */
-if (screen.orientation && screen.orientation.angle !== undefined) {
-screenAngle = screen.orientation.angle
-}
-
-/* beberapa Android lama pakai ini */
-else if (window.orientation !== undefined) {
-screenAngle = window.orientation
-}
-
-newHeading = 360 - event.alpha - screenAngle
+newHeading = 360 - event.alpha
 
 }
 
-/* jika sensor tidak ada */
 if (newHeading === null) return
 
-/* normalisasi 0–360 */
-heading = (newHeading % 360 + 360) % 360
+heading = (newHeading + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
 
 updateCompass()
-
-}, true)
-
-}
 
 }
 
