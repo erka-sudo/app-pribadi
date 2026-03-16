@@ -192,12 +192,14 @@ let sunrise = dhuhr - hourAngle(lat, dec, sunriseAngle) / 15
 let maghrib = dhuhr + hourAngle(lat, dec, sunriseAngle) / 15
 let isha = dhuhr + hourAngle(lat, dec, ishaAngle) / 15
 
-/* ASHAR (shadow factor 1) */
+/* ASHAR (metode Syafi'i / Kemenag) */
 
 let latRad = deg2rad(lat)
 let decRad = deg2rad(dec)
 
-let asrAngle = -rad2deg(Math.atan(1 / (1 + Math.tan(Math.abs(latRad - decRad)))))
+let g = Math.abs(latRad - decRad)
+
+let asrAngle = -rad2deg(Math.atan(1 / (1 + Math.tan(g))))
 
 let asr = dhuhr + hourAngle(lat, dec, asrAngle) / 15
 
