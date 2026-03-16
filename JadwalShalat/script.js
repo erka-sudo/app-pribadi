@@ -306,7 +306,7 @@ document.getElementById("qiblaLine")
 /* ================= KOMPAS ================= */
 
 /* koreksi selisih sensor browser */
-let compassOffset = 20
+let compassOffset = 24
 
 function startCompass() {
 
@@ -346,21 +346,6 @@ document.getElementById("headingText").innerText =
 updateCompass()
 
 }, true)
-
-}
-
-}
-
-/* update jarum kompas */
-
-function updateCompass() {
-
-document.getElementById("compassNeedle")
-.setAttribute("transform","rotate("+heading+" 100 100)")
-
-if(directionElement){
-
-directionElement.style.transform="rotate("+heading+"deg)"
 
 }
 
