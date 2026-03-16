@@ -303,7 +303,7 @@ document.getElementById("qiblaLine")
 
 }
 
-/* ================= KOMPAS (VERSI AWAL YANG BENAR) ================= */
+/* ================= KOMPAS ================= */
 
 function startCompass() {
 
@@ -313,21 +313,34 @@ window.addEventListener("deviceorientation", function (event) {
 
 let newHeading
 
+/* iOS */
 if (event.webkitCompassHeading) {
 
 newHeading = event.webkitCompassHeading
 
-} else if (event.alpha !== null) {
+}
 
-newHeading = 360 - event.alpha
+/* Android */
+else if (event.alpha !== null) {
 
-} else {
+let screenAngle = 0
 
-return
+if (screen.orientation && screen.orientation.angle) {
+screenAngle = screen.orientation.angle
+}
+
+newHeading = 360 - event.alpha + screenAngle
 
 }
 
-heading = (newHeading + 360) % 360
+/* jika tidak ada sensor */
+else {
+return
+}
+
+/* normalisasi 0-360 */
+
+heading = (newHeading % 360 + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
