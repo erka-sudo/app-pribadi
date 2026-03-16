@@ -1,7 +1,9 @@
 let lat = -2.1
 let lon = 102.7
 
-let weatherData = null
+let map
+let marker
+let weatherData
 
 async function loadWeather(){
 
@@ -11,9 +13,14 @@ let res = await fetch(url)
 
 weatherData = await res.json()
 
-document.getElementById("temp").innerHTML = weatherData.current_weather.temperature + "°C"
+document.getElementById("temp").innerHTML =
+weatherData.current_weather.temperature + "°C"
 
-document.getElementById("condition").innerHTML = "Wind " + weatherData.current_weather.windspeed + " km/h"
+document.getElementById("condition").innerHTML =
+"Wind " + weatherData.current_weather.windspeed + " km/h"
+
+document.getElementById("location").innerHTML =
+lat.toFixed(3) + " , " + lon.toFixed(3)
 
 showMode("hourly")
 
@@ -79,7 +86,7 @@ card.innerHTML = `
 
 <h6>${weatherData.daily.time[i]}</h6>
 
-<div>🌡 ${weatherData.daily.temperature_2m_max[i]}°</div>
+<div>🌡 ${weatherData.daily.temperature_2m_max[i]}°C</div>
 
 <div>🌧 ${weatherData.daily.precipitation_sum[i]} mm</div>
 
@@ -115,9 +122,51 @@ container.appendChild(card)
 
 }
 
+function getGPS(){
+
+if(!navigator.geolocation){
+
+alert("Browser tidak mendukung GPS")
+
+return
+
+}
+
+navigator.geolocation.getCurrentPosition(pos=>{
+
+lat = pos.coords.latitude
+lon = pos.coords.longitude
+
+map.setCenter([lon,lat])
+
+marker.setLngLat([lon,lat])
+
+loadWeather()
+
+})
+
+}
+
+function enablePickLocation(){
+
+alert("Klik lokasi pada peta")
+
+map.once("click",(e)=>{
+
+lat = e.lngLat.lat
+lon = e.lngLat.lng
+
+marker.setLngLat([lon,lat])
+
+loadWeather()
+
+})
+
+}
+
 function initMap(){
 
-const map = new maplibregl.Map({
+map = new maplibregl.Map({
 
 container:'map',
 
@@ -129,6 +178,12 @@ zoom:5
 
 })
 
+marker = new maplibregl.Marker()
+
+.setLngLat([lon,lat])
+
+.addTo(map)
+
 map.on("load",()=>{
 
 map.addSource("rain",{
@@ -136,9 +191,7 @@ map.addSource("rain",{
 type:"raster",
 
 tiles:[
-
 "https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}/2/1_1.png"
-
 ],
 
 tileSize:256
