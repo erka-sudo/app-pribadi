@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jadwal Shalat & Kiblat</title>
+
+<title>Jadwal Shalat & Arah Kiblat</title>
 
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
@@ -12,14 +14,14 @@
 
 body{
 margin:0;
-font-family:Arial;
-background:#f4f4f4;
+font-family:Segoe UI,Arial;
+background:#f5f7fb;
 }
 
 .header{
-background:#0b5ed7;
+background:linear-gradient(90deg,#0b5ed7,#3a86ff);
 color:white;
-padding:12px;
+padding:14px;
 text-align:center;
 font-size:18px;
 }
@@ -30,7 +32,9 @@ height:45vh;
 
 .panel{
 background:white;
-padding:10px;
+padding:14px;
+border-radius:12px 12px 0 0;
+box-shadow:0 -2px 8px rgba(0,0,0,0.1);
 }
 
 button{
@@ -38,20 +42,34 @@ padding:8px 12px;
 border:none;
 background:#0b5ed7;
 color:white;
-border-radius:4px;
+border-radius:6px;
 cursor:pointer;
-margin:4px;
+margin:3px;
+}
+
+button:hover{
+background:#084298;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
+margin-top:8px;
+font-size:14px;
 }
 
-td,th{
-border-bottom:1px solid #ddd;
-padding:6px;
-font-size:14px;
+th{
+background:#eef3ff;
+padding:8px;
+}
+
+td{
+padding:7px;
+border-bottom:1px solid #eee;
+}
+
+tr:hover{
+background:#f4f8ff;
 }
 
 #compass{
@@ -61,6 +79,7 @@ border:5px solid #333;
 border-radius:50%;
 margin:auto;
 position:relative;
+margin-top:10px;
 }
 
 .arrow{
@@ -87,17 +106,17 @@ background:rgba(0,0,0,0.5);
 background:white;
 margin:5% auto;
 padding:20px;
-width:90%;
-max-width:600px;
-max-height:80vh;
+width:95%;
+max-width:800px;
+border-radius:10px;
+max-height:85vh;
 overflow:auto;
-border-radius:6px;
 }
 
 .close{
 float:right;
+font-size:22px;
 cursor:pointer;
-font-size:20px;
 }
 
 </style>
@@ -113,8 +132,8 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <div class="panel">
 
-<button onclick="getGPS()">Gunakan GPS</button>
-<button onclick="useMapPoint()">Gunakan Titik Peta</button>
+<button onclick="getGPS()">GPS</button>
+<button onclick="useMapPoint()">Pilih dari Peta</button>
 <button onclick="openModal()">Jadwal 1 Bulan</button>
 
 <div id="locationText">Lokasi: -</div>
@@ -122,11 +141,25 @@ Jadwal Shalat • Peta • Arah Kiblat
 <h3 id="calendarText"></h3>
 
 <table>
-<tr><td>Subuh</td><td id="fajr"></td></tr>
-<tr><td>Dzuhur</td><td id="dhuhr"></td></tr>
-<tr><td>Ashar</td><td id="asr"></td></tr>
-<tr><td>Maghrib</td><td id="maghrib"></td></tr>
-<tr><td>Isya</td><td id="isha"></td></tr>
+
+<tr>
+<th>Subuh</th>
+<th>Syuruq</th>
+<th>Dzuhur</th>
+<th>Ashar</th>
+<th>Maghrib</th>
+<th>Isya</th>
+</tr>
+
+<tr>
+<td id="fajr"></td>
+<td id="sunrise"></td>
+<td id="dhuhr"></td>
+<td id="asr"></td>
+<td id="maghrib"></td>
+<td id="isha"></td>
+</tr>
+
 </table>
 
 <h3 style="text-align:center">Arah Kiblat</h3>
@@ -139,7 +172,9 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 </div>
 
+
 <div class="modal" id="modal">
+
 <div class="modal-content">
 
 <span class="close" onclick="closeModal()">×</span>
@@ -147,14 +182,19 @@ Jadwal Shalat • Peta • Arah Kiblat
 <h3>Jadwal Shalat 1 Bulan</h3>
 
 <table id="monthTable">
+
 <tr>
+<th>Hari</th>
 <th>Tanggal</th>
+<th>Hijriah</th>
 <th>Subuh</th>
+<th>Syuruq</th>
 <th>Dzuhur</th>
 <th>Ashar</th>
 <th>Maghrib</th>
 <th>Isya</th>
 </tr>
+
 </table>
 
 </div>
@@ -188,15 +228,23 @@ let marker=null
 let selectedPoint=null
 
 map.on("click",e=>{
+
 selectedPoint=e.lngLat
+
 if(marker) marker.remove()
-marker=new maplibregl.Marker().setLngLat(e.lngLat).addTo(map)
+
+marker=new maplibregl.Marker()
+.setLngLat(e.lngLat)
+.addTo(map)
+
 })
 
 function getGPS(){
 
 navigator.geolocation.getCurrentPosition(pos=>{
+
 setLocation(pos.coords.latitude,pos.coords.longitude)
+
 })
 
 }
@@ -204,6 +252,7 @@ setLocation(pos.coords.latitude,pos.coords.longitude)
 function useMapPoint(){
 
 if(!selectedPoint) return alert("Klik peta dulu")
+
 setLocation(selectedPoint.lat,selectedPoint.lng)
 
 }
@@ -228,23 +277,35 @@ function deg2rad(d){return d*Math.PI/180}
 function rad2deg(r){return r*180/Math.PI}
 
 function dayOfYear(d){
+
 let start=new Date(d.getFullYear(),0,0)
+
 return Math.floor((d-start)/86400000)
+
 }
 
 function solarDeclination(n){
+
 return 23.45*Math.sin(deg2rad((360/365)*(284+n)))
+
 }
 
 function equationOfTime(n){
+
 let B=deg2rad((360/365)*(n-81))
+
 return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
+
 }
 
 function hourAngle(lat,dec,angle){
+
 let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
+
 let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
+
 return rad2deg(Math.acos(num/den))
+
 }
 
 function calculatePrayerTimes(date){
@@ -261,6 +322,8 @@ let dhuhr=12+(tz*15-lon)/15-eot/60
 
 let fajr=dhuhr-hourAngle(lat,dec,-18)/15
 
+let sunrise=dhuhr-hourAngle(lat,dec,-0.833)/15
+
 let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
 
 let isha=dhuhr+hourAngle(lat,dec,-17)/15
@@ -268,33 +331,37 @@ let isha=dhuhr+hourAngle(lat,dec,-17)/15
 let asr=dhuhr+hourAngle(lat,dec,-Math.atan(1+Math.tan(Math.abs(deg2rad(lat-dec)))))/15
 
 function format(t){
+
 let h=Math.floor(t)
+
 let m=Math.floor((t-h)*60)
+
 return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
+
 }
 
 document.getElementById("fajr").innerText=format(fajr)
+document.getElementById("sunrise").innerText=format(sunrise)
 document.getElementById("dhuhr").innerText=format(dhuhr)
 document.getElementById("asr").innerText=format(asr)
 document.getElementById("maghrib").innerText=format(maghrib)
 document.getElementById("isha").innerText=format(isha)
 
-let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{
-day:'numeric',
-month:'long',
-year:'numeric'
-}).format(date)
+let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(date)
 
 document.getElementById("calendarText").innerText=
 date.toLocaleDateString("id-ID",{weekday:'long',day:'numeric',month:'long',year:'numeric'})
 +" | "+hijri
 
 return{
+
 fajr:format(fajr),
+sunrise:format(sunrise),
 dhuhr:format(dhuhr),
 asr:format(asr),
 maghrib:format(maghrib),
 isha:format(isha)
+
 }
 
 }
@@ -314,14 +381,18 @@ Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
 
 let bearing=(rad2deg(Math.atan2(y,x))+360)%360
 
-document.getElementById("qiblaText").innerText=
-"Arah Kiblat "+bearing.toFixed(1)+"°"
+document.getElementById("qiblaText").innerText="Arah Kiblat "+bearing.toFixed(1)+"°"
 
 window.addEventListener("deviceorientationabsolute",e=>{
+
 let heading=e.alpha
+
 if(heading==null) return
+
 let angle=bearing-heading
+
 document.getElementById("arrow").style.transform="rotate("+angle+"deg)"
+
 })
 
 }
@@ -335,35 +406,58 @@ generateMonth()
 }
 
 function closeModal(){
+
 document.getElementById("modal").style.display="none"
+
 }
 
 function generateMonth(){
 
 let table=document.getElementById("monthTable")
 
-table.innerHTML=
-"<tr><th>Tanggal</th><th>Subuh</th><th>Dzuhur</th><th>Ashar</th><th>Maghrib</th><th>Isya</th></tr>"
+table.innerHTML=`
+<tr>
+<th>Hari</th>
+<th>Tanggal</th>
+<th>Hijriah</th>
+<th>Subuh</th>
+<th>Syuruq</th>
+<th>Dzuhur</th>
+<th>Ashar</th>
+<th>Maghrib</th>
+<th>Isya</th>
+</tr>
+`
 
 let today=new Date()
 
-for(let i=1;i<=31;i++){
+let year=today.getFullYear()
 
-let d=new Date(today.getFullYear(),today.getMonth(),i)
+let month=today.getMonth()
 
-if(d.getMonth()!=today.getMonth()) continue
+let days=new Date(year,month+1,0).getDate()
 
-let t=calculatePrayerTimes(d)
+for(let i=1;i<=days;i++){
+
+let d=new Date(year,month,i)
+
+let times=calculatePrayerTimes(d)
+
+let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'short',year:'numeric'}).format(d)
 
 let row=document.createElement("tr")
 
-row.innerHTML=
-"<td>"+d.getDate()+"</td>"+
-"<td>"+t.fajr+"</td>"+
-"<td>"+t.dhuhr+"</td>"+
-"<td>"+t.asr+"</td>"+
-"<td>"+t.maghrib+"</td>"+
-"<td>"+t.isha+"</td>"
+row.innerHTML=`
+<td>${d.toLocaleDateString("id-ID",{weekday:'short'})}</td>
+<td>${i}</td>
+<td>${hijri}</td>
+<td>${times.fajr}</td>
+<td>${times.sunrise}</td>
+<td>${times.dhuhr}</td>
+<td>${times.asr}</td>
+<td>${times.maghrib}</td>
+<td>${times.isha}</td>
+`
 
 table.appendChild(row)
 
