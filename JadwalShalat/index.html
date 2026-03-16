@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Jadwal Shalat & Kiblat</title>
+<title>Jadwal Shalat & Arah Kiblat</title>
 
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
@@ -51,6 +51,7 @@ table{
 width:100%;
 border-collapse:collapse;
 margin-top:10px;
+font-size:14px;
 }
 
 th{
@@ -64,24 +65,8 @@ border-bottom:1px solid #eee;
 text-align:center;
 }
 
-#compass{
-width:120px;
-height:120px;
-border:5px solid #333;
-border-radius:50%;
-margin:auto;
-position:relative;
-margin-top:10px;
-}
-
-.arrow{
-width:4px;
-height:55px;
-background:red;
-position:absolute;
-top:10px;
-left:50%;
-transform-origin:bottom center;
+tr:hover{
+background:#f5f8ff;
 }
 
 .modal{
@@ -109,6 +94,19 @@ overflow:auto;
 float:right;
 font-size:22px;
 cursor:pointer;
+}
+
+/* COMPASS */
+
+#compassContainer{
+width:220px;
+margin:auto;
+margin-top:10px;
+}
+
+#compass{
+width:220px;
+height:220px;
 }
 
 /* RAMADAN BALLOON */
@@ -181,11 +179,35 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <h3 style="text-align:center">Arah Kiblat</h3>
 
-<div id="compass">
-<div class="arrow" id="arrow"></div>
+<div style="text-align:center">
+
+<div id="qiblaAngle" style="font-size:22px;font-weight:bold;margin-bottom:10px"></div>
+
+<div id="compassContainer">
+
+<svg id="compass" viewBox="0 0 200 200">
+
+<circle cx="100" cy="100" r="95"
+stroke="#333"
+stroke-width="6"
+fill="#fafafa"/>
+
+<text x="100" y="20" text-anchor="middle">N</text>
+<text x="180" y="105" text-anchor="middle">E</text>
+<text x="100" y="195" text-anchor="middle">S</text>
+<text x="20" y="105" text-anchor="middle">W</text>
+
+<polygon id="northArrow"
+points="100,30 110,100 100,90 90,100"
+fill="red"/>
+
+</svg>
+
 </div>
 
-<div id="qiblaText" style="text-align:center"></div>
+<div id="headingText"></div>
+
+</div>
 
 </div>
 
@@ -205,10 +227,10 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <script>
 
-/* ================= AUDIO ADZAN ================= */
+/* ================= ADZAN ================= */
 
 const adzan={
-fajr:new Audio("https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3"),
+fajr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
 dhuhr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
 asr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
 maghrib:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
@@ -245,33 +267,20 @@ let marker=null
 let selectedPoint=null
 
 map.on("click",e=>{
-
 selectedPoint=e.lngLat
-
 if(marker) marker.remove()
-
-marker=new maplibregl.Marker()
-.setLngLat(e.lngLat)
-.addTo(map)
-
+marker=new maplibregl.Marker().setLngLat(e.lngLat).addTo(map)
 })
 
-/* ================= GPS ================= */
-
 function getGPS(){
-
 navigator.geolocation.getCurrentPosition(pos=>{
 setLocation(pos.coords.latitude,pos.coords.longitude)
 })
-
 }
 
 function useMapPoint(){
-
 if(!selectedPoint) return alert("Klik peta dulu")
-
 setLocation(selectedPoint.lat,selectedPoint.lng)
-
 }
 
 function setLocation(a,b){
@@ -289,7 +298,7 @@ calculateQibla()
 
 }
 
-/* ================= SOLAR ================= */
+/* ================= MATEMATIKA ================= */
 
 function deg2rad(d){return d*Math.PI/180}
 function rad2deg(r){return r*180/Math.PI}
@@ -309,24 +318,22 @@ return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
 }
 
 function hourAngle(lat,dec,angle){
-
 let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
 let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
 return rad2deg(Math.acos(num/den))
-
 }
 
-/* ================= PRAYER ================= */
+/* ================= SHALAT ================= */
 
 function calculatePrayerTimes(date){
 
 let n=dayOfYear(date)
 let dec=solarDeclination(n)
 let eot=equationOfTime(n)
-
 let tz=-date.getTimezoneOffset()/60
 
 let dhuhr=12+(tz*15-lon)/15-eot/60
+
 let fajr=dhuhr-hourAngle(lat,dec,-18)/15
 let sunrise=dhuhr-hourAngle(lat,dec,-0.833)/15
 let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
@@ -355,8 +362,6 @@ document.getElementById("asr").innerText=timesToday.asr
 document.getElementById("maghrib").innerText=timesToday.maghrib
 document.getElementById("isha").innerText=timesToday.isha
 
-/* HIJRI */
-
 let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(date)
 
 document.getElementById("calendarText").innerText=
@@ -370,25 +375,53 @@ date.toLocaleDateString("id-ID",{weekday:'long',day:'numeric',month:'long',year:
 setInterval(()=>{
 
 let now=new Date()
-
 let h=now.getHours().toString().padStart(2,'0')
 let m=now.getMinutes().toString().padStart(2,'0')
-
 let current=h+":"+m
 
 for(let p in timesToday){
-
 if(current===timesToday[p]){
-
 adzan[p].play()
-
 }
-
 }
 
 },20000)
 
-/* ================= QIBLA ================= */
+/* ================= RAMADHAN COUNTDOWN ================= */
+
+setInterval(()=>{
+
+if(!timesToday.maghrib) return
+
+let now=new Date()
+
+let [h,m]=timesToday.maghrib.split(":")
+
+let maghribTime=new Date()
+maghribTime.setHours(h,m,0)
+
+let diff=(maghribTime-now)/1000
+
+let hijriMonth=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{month:'long'}).format(now)
+
+if(!hijriMonth.toLowerCase().includes("ramadhan")) return
+
+if(diff<=120 && diff>0){
+
+let balloon=document.getElementById("ramadanBalloon")
+
+balloon.style.display="block"
+balloon.innerHTML="⏳ Berbuka dalam "+Math.floor(diff)+" detik"
+
+}else{
+
+document.getElementById("ramadanBalloon").style.display="none"
+
+}
+
+},1000)
+
+/* ================= KIBLAT ================= */
 
 function calculateQibla(){
 
@@ -403,69 +436,25 @@ let x=
 Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
 Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
 
-let bearing=(rad2deg(Math.atan2(y,x))+360)%360
+let qibla=(rad2deg(Math.atan2(y,x))+360)%360
 
-document.getElementById("qiblaText").innerText="Arah Kiblat "+bearing.toFixed(1)+"°"
+document.getElementById("qiblaAngle").innerText=
+"Arah Kiblat "+qibla.toFixed(1)+"°"
 
 window.addEventListener("deviceorientationabsolute",e=>{
 
 let heading=e.alpha
 if(heading==null) return
 
-let angle=bearing-heading
-document.getElementById("arrow").style.transform="rotate("+angle+"deg)"
+document.getElementById("headingText").innerText=
+"Arah Kompas "+heading.toFixed(1)+"°"
+
+let rotate=qibla-heading
+
+document.getElementById("northArrow")
+.setAttribute("transform","rotate("+rotate+" 100 100)")
 
 })
-
-}
-
-/* ================= RAMADAN COUNTDOWN ================= */
-
-setInterval(()=>{
-
-if(!timesToday.maghrib) return
-
-let now=new Date()
-
-let [h,m]=timesToday.maghrib.split(":")
-
-let maghribTime=new Date()
-
-maghribTime.setHours(h,m,0)
-
-let diff=(maghribTime-now)/1000
-
-let hijriMonth=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{month:'long'}).format(now)
-
-if(!hijriMonth.toLowerCase().includes("ramadhan")) return
-
-if(diff<=120 && diff>0){
-
-let balloon=document.getElementById("ramadanBalloon")
-
-balloon.style.display="block"
-
-balloon.innerHTML="⏳ Berbuka dalam "+Math.floor(diff)+" detik"
-
-}else{
-
-document.getElementById("ramadanBalloon").style.display="none"
-
-}
-
-},1000)
-
-/* ================= MODAL ================= */
-
-function openModal(){
-
-document.getElementById("modal").style.display="block"
-
-}
-
-function closeModal(){
-
-document.getElementById("modal").style.display="none"
 
 }
 
