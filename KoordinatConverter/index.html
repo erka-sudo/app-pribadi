@@ -18,7 +18,7 @@ padding:40px;
 .box{
 background:white;
 padding:25px;
-max-width:700px;
+max-width:750px;
 margin:auto;
 border-radius:10px;
 box-shadow:0 0 15px rgba(0,0,0,0.1);
@@ -76,14 +76,14 @@ margin-top:5px;
 <select id="from">
 <option value="geo">Geodetic Decimal (Lat,Lon)</option>
 <option value="utm">UTM</option>
-<option value="tm3">TM-3</option>
+<option value="tm3">TM3</option>
 </select>
 
 <label>To</label>
 <select id="to">
 <option value="geo">Geodetic Decimal</option>
 <option value="utm">UTM</option>
-<option value="tm3">TM-3</option>
+<option value="tm3">TM3</option>
 </select>
 
 <label>Manual Coordinates</label>
@@ -93,7 +93,7 @@ margin-top:5px;
 
 <div class="example">
 
-Example formats
+Example
 
 Geodetic  
 -2.070877130,102.772954818
@@ -112,7 +112,7 @@ UTM
 
 <div class="example">
 
-CSV example (geodetic)
+CSV example
 
 lat,lon  
 -2.070877130,102.772954818  
@@ -128,36 +128,51 @@ lat,lon
 
 <script>
 
-// detect TM3 zone automatically
+// ================================
+// TM3 ZONE DETECTION
+// ================================
 
 function getTM3zone(lon){
 
-let zone=Math.floor(lon/3);
+let zone = Math.floor((lon - 96) / 3) + 46;
 
-let part = (lon % 3) < 1.5 ? ".1" : ".2";
+let cm = zone * 3 - 40.5;
 
-return zone+part;
+let part = lon < cm ? ".1" : ".2";
+
+return zone + part;
 
 }
 
-// build TM3 projection
+// ================================
+// TM3 PROJECTION
+// ================================
 
 function getTM3proj(lon){
 
-let zone=Math.floor(lon/3);
+let zone = Math.floor((lon - 96) / 3) + 46;
 
-let central = zone*3 + 1.5;
+let cm = zone * 3 - 40.5;
 
-return "+proj=tmerc +lat_0=0 +lon_0="+central+
+return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 " +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
 
 }
 
-// convert engine
+// ================================
+// CONVERSION ENGINE
+// ================================
 
 function convertPoint(a,b,from,to){
 
-// geodetic → UTM
+// GEO → GEO
+
+if(from==="geo" && to==="geo"){
+return a.toFixed(8)+","+b.toFixed(8);
+}
+
+
+// GEO → UTM
 
 if(from==="geo" && to==="utm"){
 
@@ -167,11 +182,12 @@ let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
 
 let p=proj4("EPSG:4326",proj,[b,a]);
 
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (zone "+zone+")";
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
 
 }
 
-// geodetic → TM3
+
+// GEO → TM3
 
 if(from==="geo" && to==="tm3"){
 
@@ -185,7 +201,8 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 
 }
 
-// UTM → geodetic
+
+// UTM → GEO
 
 if(from==="utm" && to==="geo"){
 
@@ -195,11 +212,12 @@ let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
 
 let p=proj4(proj,"EPSG:4326",[b,a]);
 
-return p[1].toFixed(6)+","+p[0].toFixed(6);
+return p[1].toFixed(8)+","+p[0].toFixed(8);
 
 }
 
-// TM3 → geodetic
+
+// TM3 → GEO
 
 if(from==="tm3" && to==="geo"){
 
@@ -207,7 +225,7 @@ let proj=getTM3proj(102);
 
 let p=proj4(proj,"EPSG:4326",[b,a]);
 
-return p[1].toFixed(6)+","+p[0].toFixed(6);
+return p[1].toFixed(8)+","+p[0].toFixed(8);
 
 }
 
@@ -215,7 +233,9 @@ return "conversion not defined";
 
 }
 
-// manual conversion
+// ================================
+// MANUAL CONVERSION
+// ================================
 
 function convertManual(){
 
@@ -245,7 +265,9 @@ document.getElementById("result").innerText=out;
 
 }
 
-// CSV conversion
+// ================================
+// CSV CONVERSION
+// ================================
 
 function convertCSV(){
 
@@ -285,14 +307,16 @@ downloadCSV(out);
 
 }
 
+// ================================
+// DOWNLOAD CSV
+// ================================
+
 function downloadCSV(rows){
 
 let csv="result\n";
 
 rows.forEach(r=>{
-
 csv+=r+"\n";
-
 });
 
 let blob=new Blob([csv]);
