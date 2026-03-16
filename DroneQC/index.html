@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Drone MRK QC Tool</title>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+padding:20px;
+}
+
+.box{
+background:white;
+padding:20px;
+max-width:1200px;
+margin:auto;
+border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:13px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:4px;
+}
+
+th{
+background:#eee;
+}
+
+.red{
+color:red;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>Drone MRK QC Tool</h2>
+
+<input type="file" id="mrkfile">
+
+Threshold
+<input id="threshold" value="0.05" size="6">
+
+<button onclick="loadMRK()">Load MRK</button>
+
+<br><br>
+
+<div id="plot" style="height:500px;"></div>
+
+<h3>QC Table</h3>
+
+<table id="table">
+<thead>
+<tr>
+<th>file</th>
+<th>lat</th>
+<th>lon</th>
+<th>alt</th>
+<th>acc_x</th>
+<th>acc_y</th>
+<th>acc_z</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<script>
+
+function loadMRK(){
+
+const file=document.getElementById("mrkfile").files[0]
+
+if(!file)return
+
+const reader=new FileReader()
+
+reader.onload=function(e){
+
+parseMRK(e.target.result)
+
+}
+
+reader.readAsText(file)
+
+}
+
+function parseMRK(text){
+
+const threshold=parseFloat(document.getElementById("threshold").value)
+
+const lines=text.split("\n")
+
+let lat=[]
+let lon=[]
+let colors=[]
+
+const tbody=document.querySelector("#table tbody")
+tbody.innerHTML=""
+
+for(let line of lines){
+
+const latMatch=line.match(/(-?\d+\.\d+),Lat/)
+const lonMatch=line.match(/(-?\d+\.\d+),Lon/)
+const altMatch=line.match(/(-?\d+\.\d+),Ellh/)
+const accMatch=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
+
+if(!latMatch)continue
+
+const parts=line.trim().split(/\s+/)
+
+const file=parts[0]
+
+const la=parseFloat(latMatch[1])
+const lo=parseFloat(lonMatch[1])
+const alt=parseFloat(altMatch[1])
+
+const ax=parseFloat(accMatch[1])
+const ay=parseFloat(accMatch[2])
+const az=parseFloat(accMatch[3])
+
+const acc=Math.max(ax,ay,az)
+
+lat.push(la)
+lon.push(lo)
+
+colors.push(acc<=threshold?"green":"red")
+
+let tr=document.createElement("tr")
+
+if(acc>threshold)tr.className="red"
+
+tr.innerHTML=`
+<td>${file}</td>
+<td>${la}</td>
+<td>${lo}</td>
+<td>${alt}</td>
+<td>${ax}</td>
+<td>${ay}</td>
+<td>${az}</td>
+`
+
+tbody.appendChild(tr)
+
+}
+
+Plotly.newPlot("plot",[{
+x:lon,
+y:lat,
+mode:"markers",
+marker:{
+color:colors,
+size:6
+}
+}],{
+
+xaxis:{title:"Longitude"},
+yaxis:{title:"Latitude",scaleanchor:"x"},
+margin:{t:20}
+
+})
+
+}
+
+</script>
+
+</body>
+</html>
