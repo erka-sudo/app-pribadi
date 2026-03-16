@@ -352,3 +352,116 @@ directionElement.style.transform="rotate("+heading+"deg)"
 }
 
 }
+
+/* ================= API PRAYER ================= */
+
+async function fetchPrayerAPI(date){
+
+try{
+
+let d=date.getDate()
+let m=date.getMonth()+1
+let y=date.getFullYear()
+
+let url=`https://api.aladhan.com/v1/timings/${d}-${m}-${y}?latitude=${lat}&longitude=${lon}&method=3`
+
+let res=await fetch(url)
+
+let data=await res.json()
+
+let t=data.data.timings
+
+timesToday={
+fajr:t.Fajr,
+sunrise:t.Sunrise,
+dhuhr:t.Dhuhr,
+asr:t.Asr,
+maghrib:t.Maghrib,
+isha:t.Isha
+}
+
+}catch(e){
+
+calculatePrayerTimes(date)
+
+}
+
+}
+
+/* ================= HIJRI ================= */
+
+function hijri(date){
+
+return new Intl.DateTimeFormat(
+'id-TN-u-ca-islamic',
+{day:'numeric',month:'long',year:'numeric'}
+).format(date)
+
+}
+
+/* ================= BULANAN ================= */
+
+function openMonthly(){
+
+document.getElementById("monthlyModal").style.display="block"
+
+generateMonthly()
+
+}
+
+function closeMonthly(){
+
+document.getElementById("monthlyModal").style.display="none"
+
+}
+
+function generateMonthly(){
+
+let tbody=document.querySelector("#monthlyTable tbody")
+
+tbody.innerHTML=""
+
+let now=new Date()
+
+let year=now.getFullYear()
+let month=now.getMonth()
+
+let days=new Date(year,month+1,0).getDate()
+
+for(let d=1; d<=days; d++){
+
+let date=new Date(year,month,d)
+
+calculatePrayerTimes(date)
+
+let sunrise=timesToday.sunrise.split(":")
+let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
+
+let srH=Math.floor(srMin/60).toString().padStart(2,"0")
+let srM=(srMin%60).toString().padStart(2,"0")
+
+let syuruq=srH+":"+srM
+
+let tr=document.createElement("tr")
+
+let hari=date.toLocaleDateString("id-ID",{weekday:"long"})
+
+tr.innerHTML=`
+
+<td>${hari}</td>
+<td>${date.getDate()}-${month+1}-${year}</td>
+<td>${hijri(date)}</td>
+<td>${timesToday.fajr}</td>
+<td>${syuruq}</td>
+<td>${timesToday.dhuhr}</td>
+<td>${timesToday.asr}</td>
+<td>${timesToday.maghrib}</td>
+<td>${timesToday.isha}</td>
+
+`
+
+tbody.appendChild(tr)
+
+}
+
+}
