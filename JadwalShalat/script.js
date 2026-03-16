@@ -3,6 +3,11 @@ let lon=0
 
 let timesToday={}
 
+let qiblaDirection=0
+let heading=0
+
+/* ================= MAP ================= */
+
 let map=new maplibregl.Map({
 container:"map",
 style:{
@@ -54,12 +59,13 @@ document.getElementById("locationText").innerText=
 
 calculatePrayerTimes(new Date())
 
+calculateQibla()
+
 startCompass()
-updateCompass()
 
 }
 
-/* MATEMATIKA */
+/* ================= MATEMATIKA ================= */
 
 function deg2rad(d){return d*Math.PI/180}
 function rad2deg(r){return r*180/Math.PI}
@@ -83,6 +89,8 @@ let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
 let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
 return rad2deg(Math.acos(num/den))
 }
+
+/* ================= SHALAT ================= */
 
 function calculatePrayerTimes(date){
 
@@ -132,7 +140,7 @@ highlightPrayer()
 
 }
 
-/* HIGHLIGHT WAKTU AKTIF */
+/* ================= HIGHLIGHT ================= */
 
 function highlightPrayer(){
 
@@ -160,7 +168,7 @@ cell.classList.add("activePrayer")
 
 }
 
-/* CLOCK MASJID */
+/* ================= CLOCK MASJID ================= */
 
 setInterval(()=>{
 
@@ -182,7 +190,7 @@ function closeMasjidMode(){
 document.getElementById("masjidMode").style.display="none"
 }
 
-/* KIBLAT */
+/* ================= KIBLAT ================= */
 
 function calculateQibla(){
 
@@ -197,18 +205,18 @@ let x=
 Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
 Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
 
-let qibla=(rad2deg(Math.atan2(y,x))+360)%360
+qiblaDirection=(rad2deg(Math.atan2(y,x))+360)%360
 
 document.getElementById("qiblaAngle").innerText=
-"Arah Kiblat "+qibla.toFixed(1)+"°"
+"Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 
-window.addEventListener("deviceorientationabsolute",e=>{
+}
 
-let heading=0
+/* ================= KOMPAS ================= */
 
 function startCompass(){
 
-if (window.DeviceOrientationEvent){
+if(window.DeviceOrientationEvent){
 
 window.addEventListener("deviceorientation",function(event){
 
@@ -216,10 +224,10 @@ let alpha=event.alpha
 
 if(alpha===null) return
 
-heading = 360 - alpha
+heading=360-alpha
 
-document.getElementById("headingText").innerText =
-"Arah Kompas " + heading.toFixed(1) + "°"
+document.getElementById("headingText").innerText=
+"Arah Kompas "+heading.toFixed(1)+"°"
 
 updateCompass()
 
@@ -231,29 +239,9 @@ updateCompass()
 
 function updateCompass(){
 
-const KAABA_LAT=21.4225
-const KAABA_LON=39.8262
-
-let dLon=deg2rad(KAABA_LON-lon)
-
-let y=Math.sin(dLon)*Math.cos(deg2rad(KAABA_LAT))
-
-let x=
-Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
-Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
-
-let qibla=(rad2deg(Math.atan2(y,x))+360)%360
-
-document.getElementById("qiblaAngle").innerText =
-"Arah Kiblat " + qibla.toFixed(1) + "°"
-
-let rotate=qibla-heading
+let rotate=qiblaDirection-heading
 
 document.getElementById("northArrow")
 .setAttribute("transform","rotate("+rotate+" 100 100)")
-
-}
-
-})
 
 }
