@@ -63,6 +63,22 @@ color:#888;
 }
 
 </style>
+
+<script>
+
+let password = "drone123";  // ganti password di sini
+
+let input = prompt("Enter access password");
+
+if(input !== password){
+
+document.write("<h2 style='text-align:center;margin-top:100px'>Access Denied</h2>");
+throw new Error("Access denied");
+
+}
+
+</script>
+
 </head>
 
 <body>
@@ -70,6 +86,7 @@ color:#888;
 <div class="box">
 
 <h1>Drone Toolbox</h1>
+
 <div class="subtitle">
 Mapping Utilities for Drone Survey
 </div>
