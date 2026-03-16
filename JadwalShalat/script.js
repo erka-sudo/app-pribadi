@@ -305,6 +305,9 @@ document.getElementById("qiblaLine")
 
 /* ================= KOMPAS ================= */
 
+/* koreksi selisih sensor browser */
+let compassOffset = 20
+
 function startCompass() {
 
 if (window.DeviceOrientationEvent) {
@@ -333,9 +336,9 @@ return
 
 }
 
-/* normalisasi */
+/* normalisasi + offset */
 
-heading = (newHeading + 360) % 360
+heading = (newHeading + compassOffset + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
@@ -343,6 +346,21 @@ document.getElementById("headingText").innerText =
 updateCompass()
 
 }, true)
+
+}
+
+}
+
+/* update jarum kompas */
+
+function updateCompass() {
+
+document.getElementById("compassNeedle")
+.setAttribute("transform","rotate("+heading+" 100 100)")
+
+if(directionElement){
+
+directionElement.style.transform="rotate("+heading+"deg)"
 
 }
 
