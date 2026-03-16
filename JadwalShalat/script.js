@@ -303,16 +303,9 @@ document.getElementById("qiblaLine")
 
 }
 
-/* ================= KOMPAS ================= */
+/* ================= KOMPAS (VERSI AWAL YANG BENAR) ================= */
 
 function startCompass() {
-
-let compassStarted = false
-
-function startCompass() {
-
-if (compassStarted) return
-compassStarted = true
 
 if (window.DeviceOrientationEvent) {
 
@@ -347,52 +340,13 @@ updateCompass()
 
 }
 
-}
-
 function updateCompass() {
 
 document.getElementById("compassNeedle")
 .setAttribute("transform","rotate("+heading+" 100 100)")
 
 if(directionElement){
-
 directionElement.style.transform="rotate("+heading+"deg)"
-
-}
-
-}
-
-/* ================= API PRAYER ================= */
-
-async function fetchPrayerAPI(date){
-
-try{
-
-let d=date.getDate()
-let m=date.getMonth()+1
-let y=date.getFullYear()
-
-let url=`https://api.aladhan.com/v1/timings/${d}-${m}-${y}?latitude=${lat}&longitude=${lon}&method=3`
-
-let res=await fetch(url)
-
-let data=await res.json()
-
-let t=data.data.timings
-
-timesToday={
-fajr:t.Fajr,
-sunrise:t.Sunrise,
-dhuhr:t.Dhuhr,
-asr:t.Asr,
-maghrib:t.Maghrib,
-isha:t.Isha
-}
-
-}catch(e){
-
-calculatePrayerTimes(date)
-
 }
 
 }
