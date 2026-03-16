@@ -16,13 +16,20 @@ padding:40px;
 background:white;
 padding:30px;
 border-radius:10px;
-max-width:600px;
+max-width:650px;
 margin:auto;
 box-shadow:0 0 15px rgba(0,0,0,0.1);
 }
 
 h1{
 text-align:center;
+margin-bottom:10px;
+}
+
+.subtitle{
+text-align:center;
+color:#666;
+margin-bottom:30px;
 }
 
 .tool{
@@ -37,8 +44,22 @@ text-align:center;
 font-size:18px;
 }
 
+.tool small{
+display:block;
+font-size:13px;
+opacity:0.9;
+margin-top:5px;
+}
+
 .tool:hover{
 background:#1a5fd0;
+}
+
+.footer{
+margin-top:25px;
+font-size:12px;
+text-align:center;
+color:#888;
 }
 
 </style>
@@ -49,18 +70,33 @@ background:#1a5fd0;
 <div class="box">
 
 <h1>Drone Toolbox</h1>
+<div class="subtitle">
+Mapping Utilities for Drone Survey
+</div>
 
 <a class="tool" href="M4e_KMLtoKMZ/">
 M4E KML → KMZ Converter
+<small>Convert Global Mapper KML polygon to DJI Matrice 4E KMZ format</small>
+</a>
+
+<a class="tool" href="KoordinatConverter/">
+Coordinate Converter
+<small>Geodetic • UTM • TM-3 • Batch CSV conversion (WGS84)</small>
 </a>
 
 <a class="tool" href="#">
-QC Foto Drone (coming soon)
+QC Foto Drone
+<small>Check flight line & missing photos (coming soon)</small>
 </a>
 
 <a class="tool" href="#">
-Map Viewer (coming soon)
+Map Viewer
+<small>Quick map viewer for KML / GeoJSON (coming soon)</small>
 </a>
+
+<div class="footer">
+Drone Tools • Web Utilities
+</div>
 
 </div>
 
