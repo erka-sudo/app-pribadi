@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Coordinate Converter</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+padding:40px;
+}
+
+.box{
+background:white;
+padding:25px;
+max-width:600px;
+margin:auto;
+border-radius:10px;
+box-shadow:0 0 15px rgba(0,0,0,0.1);
+}
+
+input,select,button{
+width:100%;
+padding:10px;
+margin-top:10px;
+}
+
+button{
+background:#2b7cff;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+textarea{
+width:100%;
+height:120px;
+margin-top:10px;
+}
+
+#result{
+margin-top:20px;
+white-space:pre;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>Coordinate Converter</h2>
+
+<label>From</label>
+<select id="from">
+<option value="geo">Geodetic Decimal</option>
+<option value="utm">UTM</option>
+<option value="tm3">TM-3</option>
+</select>
+
+<label>To</label>
+<select id="to">
+<option value="geo">Geodetic Decimal</option>
+<option value="utm">UTM</option>
+<option value="tm3">TM-3</option>
+</select>
+
+<label>TM3 Zone (if used)</label>
+<select id="tm3zone"></select>
+
+<label>Manual Coordinate</label>
+<textarea id="manual" placeholder="Example:
+-1.2345,103.4567"></textarea>
+
+<button onclick="convertManual()">Convert Manual</button>
+
+<hr>
+
+<label>Upload CSV</label>
+<input type="file" id="csv">
+
+<button onclick="convertCSV()">Convert CSV</button>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+// populate TM3 zones
+
+const zones = [
+"46.1","46.2","47.1","47.2","48.1","48.2",
+"49.1","49.2","50.1","50.2","51.1","51.2",
+"52.1","52.2","53.1","53.2","54.1","54.2"
+];
+
+let sel = document.getElementById("tm3zone");
+
+zones.forEach(z=>{
+let o=document.createElement("option");
+o.value=z;
+o.text=z;
+sel.appendChild(o);
+});
+
+function getTM3proj(){
+
+let zone = document.getElementById("tm3zone").value;
+
+let parts = zone.split(".");
+let base = parseInt(parts[0]);
+
+let lon0 = 96 + (base-46)*6;
+
+if(parts[1]==2) lon0 += 3;
+
+return "+proj=tmerc +lat_0=0 +lon_0="+lon0+" +k=0.9999 +x_0=200000 +y_0=1500000 +ellps=WGS84 +units=m +no_defs";
+
+}
+
+// convert one point
+
+function convertPoint(lat,lon,from,to){
+
+if(from==="geo" && to==="utm"){
+
+let zone = Math.floor((lon+180)/6)+1;
+
+let proj = "+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
+
+let p = proj4("EPSG:4326",proj,[lon,lat]);
+
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (zone "+zone+")";
+
+}
+
+if(from==="geo" && to==="tm3"){
+
+let proj = getTM3proj();
+
+let p = proj4("EPSG:4326",proj,[lon,lat]);
+
+return p[0].toFixed(3)+","+p[1].toFixed(3);
+
+}
+
+if(from==="utm" && to==="geo"){
+
+let zone=48;
+
+let proj = "+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
+
+let p = proj4(proj,"EPSG:4326",[lon,lat]);
+
+return p[1].toFixed(6)+","+p[0].toFixed(6);
+
+}
+
+return "conversion not defined";
+
+}
+
+function convertManual(){
+
+let text = document.getElementById("manual").value.trim();
+
+let lines = text.split("\n");
+
+let from = document.getElementById("from").value;
+let to = document.getElementById("to").value;
+
+let out="";
+
+lines.forEach(l=>{
+
+let p=l.split(",");
+
+let a=parseFloat(p[0]);
+let b=parseFloat(p[1]);
+
+let r = convertPoint(a,b,from,to);
+
+out += l+" → "+r+"\n";
+
+});
+
+document.getElementById("result").innerText=out;
+
+}
+
+// CSV conversion
+
+function convertCSV(){
+
+let file = document.getElementById("csv").files[0];
+
+if(!file) return;
+
+Papa.parse(file,{
+
+header:true,
+
+complete:function(res){
+
+let data=res.data;
+
+let from=document.getElementById("from").value;
+let to=document.getElementById("to").value;
+
+let out=[];
+
+data.forEach(r=>{
+
+let lat=parseFloat(r.lat || r.y);
+let lon=parseFloat(r.lon || r.x);
+
+let conv=convertPoint(lat,lon,from,to);
+
+out.push(conv);
+
+});
+
+downloadCSV(out);
+
+}
+
+});
+
+}
+
+function downloadCSV(rows){
+
+let csv="result\n";
+
+rows.forEach(r=>{
+
+csv+=r+"\n";
+
+});
+
+let blob=new Blob([csv]);
+
+let a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="converted.csv";
+
+a.click();
+
+}
+
+</script>
+
+</body>
+</html>
