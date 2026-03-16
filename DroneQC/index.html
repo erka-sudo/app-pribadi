@@ -1,10 +1,12 @@
 terbaru2
+```html
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
-<title>Drone QC Tool (WebGL)</title>
+<title>Drone QC Tool</title>
 
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet"/>
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
@@ -87,6 +89,7 @@ background:#fff2a8;
 }
 
 </style>
+
 </head>
 
 
@@ -102,8 +105,11 @@ Threshold
 <button onclick="loadProject()">Open Project</button>
 <button onclick="zoomToFlights()">Zoom to Flight</button>
 
+<button onclick="selectAllFlights()">Select All</button>
+<button onclick="unselectAllFlights()">Unselect All</button>
+
 Point Size
-<input type="range" id="pointSize" min="3" max="12" value="6">
+<input type="range" id="pointSize" min="4" max="16" value="6">
 
 </div>
 
@@ -118,7 +124,7 @@ Point Size
 
 <thead>
 <tr>
-<th>ID</th>
+<th>file</th>
 <th>lat</th>
 <th>lon</th>
 <th>alt</th>
@@ -152,18 +158,15 @@ Point Size
 </div>
 
 
-
 <script>
 
-let map
 let flights={}
 let selectedFlights=new Set()
 
-let featureCollection={
-"type":"FeatureCollection",
-"features":[]
-}
+let map
 
+let markers=[]
+let markerById={}
 let rowById={}
 let pointById={}
 
@@ -179,11 +182,14 @@ sources:{
 osm:{
 type:"raster",
 tiles:[
-"https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+"https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+"https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
+"https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
 ],
 tileSize:256
 }
 },
+
 layers:[
 {
 id:"osm",
@@ -191,6 +197,7 @@ type:"raster",
 source:"osm"
 }
 ]
+
 },
 
 center:[102.77,-2.08],
@@ -198,75 +205,20 @@ zoom:14
 
 })
 
-map.on("load",()=>{
-
-map.addSource("points",{
-type:"geojson",
-data:featureCollection
-})
-
-map.addLayer({
-id:"points",
-type:"circle",
-source:"points",
-paint:{
-"circle-radius":6,
-"circle-color":[
-"case",
-[">",["get","acc"],0.05],
-"#ff0000",
-"#00ff00"
-],
-"circle-stroke-width":1,
-"circle-stroke-color":"#000"
-}
-})
-
-map.addLayer({
-id:"highlight",
-type:"circle",
-source:"points",
-paint:{
-"circle-radius":10,
-"circle-color":"#ffff00"
-},
-filter:["==","id",-1]
-})
-
-})
-
 }
 
 initMap()
 
-
-document.getElementById("pointSize").addEventListener("input",()=>{
-
-let size=parseInt(document.getElementById("pointSize").value)
-
-map.setPaintProperty("points","circle-radius",size)
-
-})
-
-document.getElementById("threshold").addEventListener("input",updateThreshold)
+document.getElementById("pointSize").addEventListener("input",drawFlights)
+document.getElementById("threshold").addEventListener("input",drawFlights)
 
 
+function getFlightName(path){
 
-function updateThreshold(){
-
-let t=parseFloat(document.getElementById("threshold").value)
-
-map.setPaintProperty("points","circle-color",[
-
-"case",
-[">",["get","acc"],t],
-"#ff0000",
-"#00ff00"
-
-])
+let parts=path.split("/")
+return parts[parts.length-2]
 
 }
-
 
 
 function loadProject(){
@@ -274,15 +226,27 @@ function loadProject(){
 const files=document.getElementById("folder").files
 
 flights={}
+selectedFlights.clear()
 
 for(let file of files){
 
 if(file.name.endsWith(".MRK")){
 
-let parts=file.webkitRelativePath.split("/")
-let flight=parts[parts.length-2]
+let flight=getFlightName(file.webkitRelativePath)
 
-flights[flight]=file
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[],points:[]}
+
+flights[flight].mrk=file
+
+}
+
+if(file.name.endsWith("_V.JPG")){
+
+let flight=getFlightName(file.webkitRelativePath)
+
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[],points:[]}
+
+flights[flight].jpgs.push(file.name)
 
 }
 
@@ -293,16 +257,7 @@ readMRK()
 }
 
 
-
 function readMRK(){
-
-featureCollection.features=[]
-
-let tbody=document.querySelector("#table tbody")
-
-tbody.innerHTML=""
-
-let id=0
 
 for(let f in flights){
 
@@ -310,7 +265,24 @@ let reader=new FileReader()
 
 reader.onload=function(e){
 
-let lines=e.target.result.split("\n")
+parseMRK(e.target.result,f)
+
+}
+
+reader.readAsText(flights[f].mrk)
+
+}
+
+setTimeout(buildFlightList,500)
+
+}
+
+
+function parseMRK(text,flight){
+
+let lines=text.split("\n")
+
+let points=[]
 
 for(let line of lines){
 
@@ -321,38 +293,113 @@ let acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 
 if(!lat) continue
 
-let p={
+points.push({
+
 lat:parseFloat(lat[1]),
 lon:parseFloat(lon[1]),
 alt:parseFloat(alt[1]),
 ax:parseFloat(acc[1]),
 ay:parseFloat(acc[2]),
 az:parseFloat(acc[3])
-}
-
-let accmax=Math.max(p.ax,p.ay,p.az)
-
-featureCollection.features.push({
-
-type:"Feature",
-
-id:id,
-
-properties:{
-id:id,
-acc:accmax
-},
-
-geometry:{
-type:"Point",
-coordinates:[p.lon,p.lat]
-}
 
 })
 
+}
+
+flights[flight].points=points
+
+}
+
+
+function buildFlightList(){
+
+const div=document.getElementById("flightList")
+div.innerHTML=""
+
+for(let f in flights){
+
+let el=document.createElement("div")
+
+el.className="flight"
+el.innerText=f
+
+el.onclick=function(){
+
+if(selectedFlights.has(f)){
+
+selectedFlights.delete(f)
+el.classList.remove("selected")
+
+}else{
+
+selectedFlights.add(f)
+el.classList.add("selected")
+
+}
+
+drawFlights()
+
+}
+
+div.appendChild(el)
+
+}
+
+}
+
+
+function clearMarkers(){
+
+markers.forEach(m=>m.remove())
+
+markers=[]
+markerById={}
+rowById={}
+pointById={}
+
+}
+
+
+function drawFlights(){
+
+clearMarkers()
+
+let size=parseInt(document.getElementById("pointSize").value)
+let threshold=parseFloat(document.getElementById("threshold").value)
+
+let tbody=document.querySelector("#table tbody")
+tbody.innerHTML=""
+
+let id=0
+
+for(let f of selectedFlights){
+
+for(let p of flights[f].points){
+
+let acc=Math.max(p.ax,p.ay,p.az)
+
+let color = acc>threshold ? "red" : "lime"
+
+let el=document.createElement("div")
+
+el.style.width=size+"px"
+el.style.height=size+"px"
+el.style.borderRadius="50%"
+el.style.background=color
+el.style.border="1px solid black"
+
+let marker=new maplibregl.Marker({element:el})
+.setLngLat([p.lon,p.lat])
+.addTo(map)
+
+markers.push(marker)
+
+markerById[id]=el
+pointById[id]=p
+
 let tr=document.createElement("tr")
 
-if(accmax>0.05) tr.classList.add("red")
+if(acc>threshold) tr.classList.add("red")
 
 tr.innerHTML=`
 <td>${id}</td>
@@ -365,30 +412,31 @@ tr.innerHTML=`
 <td>${f}</td>
 `
 
-tr.onclick=()=>highlightPoint(id,p)
-
 tbody.appendChild(tr)
 
 rowById[id]=tr
-pointById[id]=p
+
+el.onclick=()=>highlightPoint(id)
+tr.onclick=()=>highlightPoint(id)
 
 id++
 
 }
 
-map.getSource("points").setData(featureCollection)
-
-}
-
-reader.readAsText(flights[f])
-
 }
 
 }
 
 
+function highlightPoint(id){
 
-function highlightPoint(id,p){
+for(let k in markerById){
+
+markerById[k].style.border="1px solid black"
+
+}
+
+markerById[id].style.border="4px solid yellow"
 
 for(let r in rowById){
 
@@ -400,7 +448,7 @@ rowById[id].classList.add("highlight")
 
 rowById[id].scrollIntoView({block:"center"})
 
-map.setFilter("highlight",["==","id",id])
+let p=pointById[id]
 
 map.flyTo({
 center:[p.lon,p.lat],
@@ -410,16 +458,47 @@ zoom:18
 }
 
 
-
 function zoomToFlights(){
 
 let bounds=new maplibregl.LngLatBounds()
 
-featureCollection.features.forEach(f=>{
-bounds.extend(f.geometry.coordinates)
-})
+for(let f of selectedFlights){
+
+for(let p of flights[f].points){
+
+bounds.extend([p.lon,p.lat])
+
+}
+
+}
+
+if(!bounds.isEmpty()){
 
 map.fitBounds(bounds,{padding:40})
+
+}
+
+}
+
+
+function selectAllFlights(){
+
+for(let f in flights){
+selectedFlights.add(f)
+}
+
+buildFlightList()
+drawFlights()
+
+}
+
+
+function unselectAllFlights(){
+
+selectedFlights.clear()
+
+buildFlightList()
+drawFlights()
 
 }
 
@@ -427,3 +506,4 @@ map.fitBounds(bounds,{padding:40})
 
 </body>
 </html>
+```
