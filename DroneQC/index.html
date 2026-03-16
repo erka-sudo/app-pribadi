@@ -1,4 +1,4 @@
-terbaru
+```html
 <!DOCTYPE html>
 <html>
 
@@ -91,6 +91,7 @@ background:#fff2a8;
 
 </head>
 
+
 <body>
 
 <div class="topbar">
@@ -107,7 +108,7 @@ Threshold
 <button onclick="unselectAllFlights()">Unselect All</button>
 
 Point Size
-<input type="range" id="pointSize" min="4" max="14" value="6">
+<input type="range" id="pointSize" min="4" max="16" value="6">
 
 </div>
 
@@ -156,15 +157,17 @@ Point Size
 </div>
 
 
-
 <script>
 
 let flights={}
 let selectedFlights=new Set()
 
 let map
+
 let markers=[]
-let rows=[]
+let markerById={}
+let rowById={}
+let pointById={}
 
 function initMap(){
 
@@ -208,14 +211,13 @@ initMap()
 document.getElementById("pointSize").addEventListener("input",drawFlights)
 document.getElementById("threshold").addEventListener("input",drawFlights)
 
+
 function getFlightName(path){
 
 let parts=path.split("/")
-
 return parts[parts.length-2]
 
 }
-
 
 
 function loadProject(){
@@ -254,7 +256,6 @@ readMRK()
 }
 
 
-
 function readMRK(){
 
 for(let f in flights){
@@ -274,7 +275,6 @@ reader.readAsText(flights[f].mrk)
 setTimeout(buildFlightList,500)
 
 }
-
 
 
 function parseMRK(text,flight){
@@ -310,11 +310,9 @@ flights[flight].points=points
 }
 
 
-
 function buildFlightList(){
 
 const div=document.getElementById("flightList")
-
 div.innerHTML=""
 
 for(let f in flights){
@@ -349,28 +347,26 @@ div.appendChild(el)
 }
 
 
-
 function clearMarkers(){
 
 markers.forEach(m=>m.remove())
 
 markers=[]
-
-rows=[]
+markerById={}
+rowById={}
+pointById={}
 
 }
-
 
 
 function drawFlights(){
 
 clearMarkers()
 
-let size=document.getElementById("pointSize").value
+let size=parseInt(document.getElementById("pointSize").value)
 let threshold=parseFloat(document.getElementById("threshold").value)
 
 let tbody=document.querySelector("#table tbody")
-
 tbody.innerHTML=""
 
 let id=0
@@ -389,12 +385,16 @@ el.style.width=size+"px"
 el.style.height=size+"px"
 el.style.borderRadius="50%"
 el.style.background=color
+el.style.border="1px solid black"
 
-let marker=new maplibregl.Marker(el)
+let marker=new maplibregl.Marker({element:el})
 .setLngLat([p.lon,p.lat])
 .addTo(map)
 
 markers.push(marker)
+
+markerById[id]=el
+pointById[id]=p
 
 let tr=document.createElement("tr")
 
@@ -413,10 +413,10 @@ tr.innerHTML=`
 
 tbody.appendChild(tr)
 
-rows[id]=tr
+rowById[id]=tr
 
-el.onclick=()=>selectPoint(id,p)
-tr.onclick=()=>selectPoint(id,p)
+el.onclick=()=>highlightPoint(id)
+tr.onclick=()=>highlightPoint(id)
 
 id++
 
@@ -427,19 +427,34 @@ id++
 }
 
 
+function highlightPoint(id){
 
-function selectPoint(id,p){
+for(let k in markerById){
 
-rows.forEach(r=>r.classList.remove("highlight"))
-
-rows[id].classList.add("highlight")
-
-rows[id].scrollIntoView({block:"center"})
-
-map.flyTo({center:[p.lon,p.lat],zoom:18})
+markerById[k].style.border="1px solid black"
 
 }
 
+markerById[id].style.border="4px solid yellow"
+
+for(let r in rowById){
+
+rowById[r].classList.remove("highlight")
+
+}
+
+rowById[id].classList.add("highlight")
+
+rowById[id].scrollIntoView({block:"center"})
+
+let p=pointById[id]
+
+map.flyTo({
+center:[p.lon,p.lat],
+zoom:18
+})
+
+}
 
 
 function zoomToFlights(){
@@ -456,21 +471,25 @@ bounds.extend([p.lon,p.lat])
 
 }
 
+if(!bounds.isEmpty()){
+
 map.fitBounds(bounds,{padding:40})
 
 }
 
+}
 
 
 function selectAllFlights(){
 
-for(let f in flights) selectedFlights.add(f)
+for(let f in flights){
+selectedFlights.add(f)
+}
 
 buildFlightList()
 drawFlights()
 
 }
-
 
 
 function unselectAllFlights(){
@@ -485,5 +504,5 @@ drawFlights()
 </script>
 
 </body>
-
 </html>
+```
