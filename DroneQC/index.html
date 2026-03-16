@@ -69,14 +69,14 @@ padding:4px;
 color:red;
 }
 
+.highlight{
+background:#fff2a8 !important;
+}
+
 #map{
 height:450px;
 border:1px solid #ccc;
 margin-bottom:10px;
-}
-
-.highlight{
-background:#fff2a8 !important;
 }
 
 </style>
@@ -93,6 +93,11 @@ Threshold
 
 <button onclick="loadProject()">Open Project</button>
 <button onclick="zoomToFlights()">Zoom to Flight</button>
+<button onclick="selectAllFlights()">Select All</button>
+<button onclick="unselectAllFlights()">Unselect All</button>
+
+Point Size
+<input type="range" id="pointSize" min="4" max="14" value="6" oninput="drawFlights()">
 
 <br><br>
 
@@ -141,8 +146,8 @@ let flights={}
 let selectedFlights=new Set()
 let map
 let markers=[]
-let idCounter=0
 let idMap={}
+let lastFlight=null
 
 function initMap(){
 
@@ -151,23 +156,23 @@ map=new maplibregl.Map({
 container:"map",
 
 style:{
-"version":8,
-"sources":{
-"osm":{
-"type":"raster",
-"tiles":[
+version:8,
+sources:{
+osm:{
+type:"raster",
+tiles:[
 "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
 "https://b.tile.openstreetmap.org/{z}/{x}/{y}.png",
 "https://c.tile.openstreetmap.org/{z}/{x}/{y}.png"
 ],
-"tileSize":256
+tileSize:256
 }
 },
-"layers":[
+layers:[
 {
-"id":"osm",
-"type":"raster",
-"source":"osm"
+id:"osm",
+type:"raster",
+source:"osm"
 }
 ]
 },
@@ -308,12 +313,12 @@ for(let f in flights){
 let el=document.createElement("div")
 
 el.className="flight"
-
+el.dataset.flight=f
 el.innerText=f+" ("+flights[f].points.length+")"
 
-el.onclick=function(){
+el.onclick=function(e){
 
-toggleFlight(f,el)
+toggleFlight(f,el,e)
 
 }
 
@@ -323,7 +328,27 @@ div.appendChild(el)
 
 }
 
-function toggleFlight(f,el){
+function toggleFlight(f,el,event){
+
+if(event.shiftKey && lastFlight){
+
+let list=Object.keys(flights)
+
+let start=list.indexOf(lastFlight)
+let end=list.indexOf(f)
+
+let min=Math.min(start,end)
+let max=Math.max(start,end)
+
+for(let i=min;i<=max;i++){
+
+selectedFlights.add(list[i])
+
+document.querySelector(`[data-flight="${list[i]}"]`).classList.add("selected")
+
+}
+
+}else{
 
 if(selectedFlights.has(f)){
 
@@ -336,6 +361,39 @@ selectedFlights.add(f)
 el.classList.add("selected")
 
 }
+
+}
+
+lastFlight=f
+
+drawFlights()
+
+}
+
+function selectAllFlights(){
+
+selectedFlights.clear()
+
+document.querySelectorAll(".flight").forEach(el=>{
+
+selectedFlights.add(el.dataset.flight)
+el.classList.add("selected")
+
+})
+
+drawFlights()
+
+}
+
+function unselectAllFlights(){
+
+selectedFlights.clear()
+
+document.querySelectorAll(".flight").forEach(el=>{
+
+el.classList.remove("selected")
+
+})
 
 drawFlights()
 
@@ -353,19 +411,17 @@ function drawFlights(){
 
 clearMarkers()
 
-const threshold=parseFloat(document.getElementById("threshold").value)
+let size=document.getElementById("pointSize").value
+let threshold=parseFloat(document.getElementById("threshold").value)
 
 const tbody=document.querySelector("#table tbody")
 tbody.innerHTML=""
 
-idCounter=0
 idMap={}
 
-let flightIndex=0
+let id=0
 
 for(let f of selectedFlights){
-
-let color=flightIndex===0 ? "magenta" : "orange"
 
 let data=flights[f].points
 
@@ -373,21 +429,26 @@ for(let p of data){
 
 let acc=Math.max(p.ax,p.ay,p.az)
 
+let color = acc>threshold ? "red" : "lime"
+
 let el=document.createElement("div")
 
-el.style.width="8px"
-el.style.height="8px"
+el.style.width=size+"px"
+el.style.height=size+"px"
 el.style.borderRadius="50%"
 el.style.background=color
 el.style.cursor="pointer"
-
-let id=idCounter++
 
 idMap[id]=p
 
 el.onclick=function(){
 
 highlightRow(id)
+
+map.flyTo({
+center:[p.lon,p.lat],
+zoom:18
+})
 
 }
 
@@ -418,13 +479,18 @@ tr.onclick=function(){
 
 highlightRow(id)
 
+map.flyTo({
+center:[p.lon,p.lat],
+zoom:18
+})
+
 }
 
 tbody.appendChild(tr)
 
-}
+id++
 
-flightIndex++
+}
 
 }
 
