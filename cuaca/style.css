@@ -1,0 +1,51 @@
+body{
+background:#0f172a;
+color:white;
+font-family:system-ui;
+}
+
+.card{
+background:#1e293b;
+color:white;
+}
+
+#map{
+width:100%;
+height:400px;
+border-radius:10px;
+margin-top:10px;
+}
+
+/* animasi hujan */
+
+.rain{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+background-image:linear-gradient(transparent,rgba(255,255,255,0.3));
+background-size:2px 20px;
+animation:rain 0.3s linear infinite;
+opacity:0.3;
+}
+
+@keyframes rain{
+
+0%{
+background-position:0 0;
+}
+
+100%{
+background-position:-100px 500px;
+}
+
+}
+
+.forecast-card{
+background:#1e293b;
+border-radius:10px;
+padding:10px;
+text-align:center;
+}
