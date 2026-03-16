@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Jadwal Shalat & Arah Kiblat</title>
+<title>Jadwal Shalat & Kiblat</title>
 
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
@@ -47,15 +47,10 @@ cursor:pointer;
 margin:3px;
 }
 
-button:hover{
-background:#084298;
-}
-
 table{
 width:100%;
 border-collapse:collapse;
-margin-top:8px;
-font-size:14px;
+margin-top:10px;
 }
 
 th{
@@ -66,10 +61,7 @@ padding:8px;
 td{
 padding:7px;
 border-bottom:1px solid #eee;
-}
-
-tr:hover{
-background:#f4f8ff;
+text-align:center;
 }
 
 #compass{
@@ -107,7 +99,7 @@ background:white;
 margin:5% auto;
 padding:20px;
 width:95%;
-max-width:800px;
+max-width:900px;
 border-radius:10px;
 max-height:85vh;
 overflow:auto;
@@ -117,6 +109,31 @@ overflow:auto;
 float:right;
 font-size:22px;
 cursor:pointer;
+}
+
+/* BALLOON COUNTDOWN */
+
+#ramadanBalloon{
+display:none;
+position:fixed;
+bottom:40px;
+right:40px;
+background:#ff4d4d;
+color:white;
+padding:25px 30px;
+font-size:32px;
+border-radius:50px;
+box-shadow:0 6px 20px rgba(0,0,0,0.3);
+z-index:999;
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+
+0%{transform:scale(1)}
+50%{transform:scale(1.08)}
+100%{transform:scale(1)}
+
 }
 
 </style>
@@ -173,6 +190,9 @@ Jadwal Shalat • Peta • Arah Kiblat
 </div>
 
 
+<div id="ramadanBalloon"></div>
+
+
 <div class="modal" id="modal">
 
 <div class="modal-content">
@@ -181,29 +201,19 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <h3>Jadwal Shalat 1 Bulan</h3>
 
-<table id="monthTable">
-
-<tr>
-<th>Hari</th>
-<th>Tanggal</th>
-<th>Hijriah</th>
-<th>Subuh</th>
-<th>Syuruq</th>
-<th>Dzuhur</th>
-<th>Ashar</th>
-<th>Maghrib</th>
-<th>Isya</th>
-</tr>
-
-</table>
+<table id="monthTable"></table>
 
 </div>
 </div>
+
 
 <script>
 
+/* ================= MAP ================= */
+
 let lat=0
 let lon=0
+let todayMaghrib=null
 
 let map=new maplibregl.Map({
 container:"map",
@@ -239,6 +249,9 @@ marker=new maplibregl.Marker()
 
 })
 
+
+/* ================= GPS ================= */
+
 function getGPS(){
 
 navigator.geolocation.getCurrentPosition(pos=>{
@@ -273,13 +286,15 @@ calculateQibla()
 
 }
 
+
+/* ================= SOLAR ================= */
+
 function deg2rad(d){return d*Math.PI/180}
 function rad2deg(r){return r*180/Math.PI}
 
 function dayOfYear(d){
 
 let start=new Date(d.getFullYear(),0,0)
-
 return Math.floor((d-start)/86400000)
 
 }
@@ -293,7 +308,6 @@ return 23.45*Math.sin(deg2rad((360/365)*(284+n)))
 function equationOfTime(n){
 
 let B=deg2rad((360/365)*(n-81))
-
 return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
 
 }
@@ -301,31 +315,26 @@ return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
 function hourAngle(lat,dec,angle){
 
 let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
-
 let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
-
 return rad2deg(Math.acos(num/den))
 
 }
 
+
+/* ================= PRAYER ================= */
+
 function calculatePrayerTimes(date){
 
 let n=dayOfYear(date)
-
 let dec=solarDeclination(n)
-
 let eot=equationOfTime(n)
 
 let tz=-date.getTimezoneOffset()/60
 
 let dhuhr=12+(tz*15-lon)/15-eot/60
-
 let fajr=dhuhr-hourAngle(lat,dec,-18)/15
-
 let sunrise=dhuhr-hourAngle(lat,dec,-0.833)/15
-
 let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
-
 let isha=dhuhr+hourAngle(lat,dec,-17)/15
 
 let asr=dhuhr+hourAngle(lat,dec,-Math.atan(1+Math.tan(Math.abs(deg2rad(lat-dec)))))/15
@@ -333,19 +342,28 @@ let asr=dhuhr+hourAngle(lat,dec,-Math.atan(1+Math.tan(Math.abs(deg2rad(lat-dec))
 function format(t){
 
 let h=Math.floor(t)
-
 let m=Math.floor((t-h)*60)
-
 return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
 
 }
 
-document.getElementById("fajr").innerText=format(fajr)
-document.getElementById("sunrise").innerText=format(sunrise)
-document.getElementById("dhuhr").innerText=format(dhuhr)
-document.getElementById("asr").innerText=format(asr)
-document.getElementById("maghrib").innerText=format(maghrib)
-document.getElementById("isha").innerText=format(isha)
+let fajrT=format(fajr)
+let sunriseT=format(sunrise)
+let dhuhrT=format(dhuhr)
+let asrT=format(asr)
+let maghribT=format(maghrib)
+let ishaT=format(isha)
+
+document.getElementById("fajr").innerText=fajrT
+document.getElementById("sunrise").innerText=sunriseT
+document.getElementById("dhuhr").innerText=dhuhrT
+document.getElementById("asr").innerText=asrT
+document.getElementById("maghrib").innerText=maghribT
+document.getElementById("isha").innerText=ishaT
+
+todayMaghrib=maghribT
+
+/* HIJRI */
 
 let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(date)
 
@@ -353,18 +371,10 @@ document.getElementById("calendarText").innerText=
 date.toLocaleDateString("id-ID",{weekday:'long',day:'numeric',month:'long',year:'numeric'})
 +" | "+hijri
 
-return{
-
-fajr:format(fajr),
-sunrise:format(sunrise),
-dhuhr:format(dhuhr),
-asr:format(asr),
-maghrib:format(maghrib),
-isha:format(isha)
-
 }
 
-}
+
+/* ================= QIBLA ================= */
 
 function calculateQibla(){
 
@@ -397,6 +407,49 @@ document.getElementById("arrow").style.transform="rotate("+angle+"deg)"
 
 }
 
+
+/* ================= RAMADAN COUNTDOWN ================= */
+
+setInterval(()=>{
+
+if(!todayMaghrib) return
+
+let now=new Date()
+
+let [h,m]=todayMaghrib.split(":")
+
+let maghribTime=new Date()
+maghribTime.setHours(h,m,0)
+
+let diff=(maghribTime-now)/1000
+
+/* cek ramadhan */
+
+let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{month:'long'}).format(now)
+
+if(!hijri.toLowerCase().includes("ramadhan")) return
+
+if(diff<=120 && diff>0){
+
+let s=Math.floor(diff)
+
+let balloon=document.getElementById("ramadanBalloon")
+
+balloon.style.display="block"
+
+balloon.innerHTML="⏳ Berbuka dalam "+s+" detik"
+
+}else{
+
+document.getElementById("ramadanBalloon").style.display="none"
+
+}
+
+},1000)
+
+
+/* ================= MODAL ================= */
+
 function openModal(){
 
 document.getElementById("modal").style.display="block"
@@ -417,9 +470,9 @@ let table=document.getElementById("monthTable")
 
 table.innerHTML=`
 <tr>
-<th>Hari</th>
 <th>Tanggal</th>
 <th>Hijriah</th>
+<th>Hari</th>
 <th>Subuh</th>
 <th>Syuruq</th>
 <th>Dzuhur</th>
@@ -432,31 +485,46 @@ table.innerHTML=`
 let today=new Date()
 
 let year=today.getFullYear()
-
 let month=today.getMonth()
 
 let days=new Date(year,month+1,0).getDate()
+
+const hariMap={
+"Minggu":"Ahad",
+"Senin":"Senin",
+"Selasa":"Selasa",
+"Rabu":"Rabu",
+"Kamis":"Kamis",
+"Jumat":"Jumat",
+"Sabtu":"Sabtu"
+}
 
 for(let i=1;i<=days;i++){
 
 let d=new Date(year,month,i)
 
-let times=calculatePrayerTimes(d)
+calculatePrayerTimes(d)
 
-let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'short',year:'numeric'}).format(d)
+let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(d)
+
+let hari=d.toLocaleDateString("id-ID",{weekday:'long'})
+
+hari=hariMap[hari]
+
+let tanggal=d.toLocaleDateString("id-ID",{day:'numeric',month:'long',year:'numeric'})
 
 let row=document.createElement("tr")
 
 row.innerHTML=`
-<td>${d.toLocaleDateString("id-ID",{weekday:'short'})}</td>
-<td>${i}</td>
+<td>${tanggal}</td>
 <td>${hijri}</td>
-<td>${times.fajr}</td>
-<td>${times.sunrise}</td>
-<td>${times.dhuhr}</td>
-<td>${times.asr}</td>
-<td>${times.maghrib}</td>
-<td>${times.isha}</td>
+<td>${hari}</td>
+<td>${document.getElementById("fajr").innerText}</td>
+<td>${document.getElementById("sunrise").innerText}</td>
+<td>${document.getElementById("dhuhr").innerText}</td>
+<td>${document.getElementById("asr").innerText}</td>
+<td>${document.getElementById("maghrib").innerText}</td>
+<td>${document.getElementById("isha").innerText}</td>
 `
 
 table.appendChild(row)
