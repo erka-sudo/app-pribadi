@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
 
 <meta charset="UTF-8">
@@ -7,128 +8,12 @@
 
 <title>Jadwal Shalat & Arah Kiblat</title>
 
+<link rel="stylesheet" href="style.css">
+
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
+
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
 
-<style>
-
-body{
-margin:0;
-font-family:Segoe UI,Arial;
-background:#f5f7fb;
-}
-
-.header{
-background:linear-gradient(90deg,#0b5ed7,#3a86ff);
-color:white;
-padding:14px;
-text-align:center;
-font-size:18px;
-}
-
-#map{
-height:45vh;
-}
-
-.panel{
-background:white;
-padding:14px;
-border-radius:12px 12px 0 0;
-box-shadow:0 -2px 8px rgba(0,0,0,0.1);
-}
-
-button{
-padding:8px 12px;
-border:none;
-background:#0b5ed7;
-color:white;
-border-radius:6px;
-cursor:pointer;
-margin:3px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
-font-size:14px;
-}
-
-th{
-background:#eef3ff;
-padding:8px;
-}
-
-td{
-padding:7px;
-border-bottom:1px solid #eee;
-text-align:center;
-}
-
-.modal{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.5);
-}
-
-.modal-content{
-background:white;
-margin:5% auto;
-padding:20px;
-width:95%;
-max-width:900px;
-border-radius:10px;
-max-height:85vh;
-overflow:auto;
-}
-
-.close{
-float:right;
-font-size:22px;
-cursor:pointer;
-}
-
-/* COMPASS */
-
-#compassContainer{
-width:220px;
-margin:auto;
-margin-top:10px;
-}
-
-#compass{
-width:220px;
-height:220px;
-}
-
-/* RAMADAN BALLOON */
-
-#ramadanBalloon{
-display:none;
-position:fixed;
-bottom:40px;
-right:40px;
-background:#ff4d4d;
-color:white;
-padding:25px 30px;
-font-size:30px;
-border-radius:50px;
-box-shadow:0 6px 20px rgba(0,0,0,0.3);
-z-index:999;
-animation:pulse 1s infinite;
-}
-
-@keyframes pulse{
-0%{transform:scale(1)}
-50%{transform:scale(1.08)}
-100%{transform:scale(1)}
-}
-
-</style>
 </head>
 
 <body>
@@ -175,7 +60,7 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <div style="text-align:center">
 
-<div id="qiblaAngle" style="font-size:22px;font-weight:bold;margin-bottom:10px"></div>
+<div id="qiblaAngle"></div>
 
 <div id="compassContainer">
 
@@ -208,6 +93,7 @@ fill="red"/>
 <div id="ramadanBalloon"></div>
 
 <div class="modal" id="modal">
+
 <div class="modal-content">
 
 <span class="close" onclick="closeModal()">×</span>
@@ -217,268 +103,10 @@ fill="red"/>
 <table id="monthTable"></table>
 
 </div>
+
 </div>
 
-<script>
-
-/* ================= AUDIO ================= */
-
-const adzan={
-fajr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
-dhuhr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
-asr:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
-maghrib:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3"),
-isha:new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e8b7b.mp3")
-}
-
-/* allow autoplay after first click */
-
-document.body.addEventListener("click",()=>{
-
-for(let a in adzan){
-
-adzan[a].play().then(()=>{
-adzan[a].pause()
-adzan[a].currentTime=0
-}).catch(()=>{})
-
-}
-
-},{once:true})
-
-let timesToday={}
-
-/* ================= MAP ================= */
-
-let lat=0
-let lon=0
-
-let map=new maplibregl.Map({
-container:"map",
-style:{
-version:8,
-sources:{
-esri:{
-type:"raster",
-tiles:[
-"https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-],
-tileSize:256
-}
-},
-layers:[{id:"esri",type:"raster",source:"esri"}]
-},
-center:[110,-2],
-zoom:5
-})
-
-let marker=null
-let selectedPoint=null
-
-map.on("click",e=>{
-selectedPoint=e.lngLat
-if(marker) marker.remove()
-marker=new maplibregl.Marker().setLngLat(e.lngLat).addTo(map)
-})
-
-function getGPS(){
-navigator.geolocation.getCurrentPosition(pos=>{
-setLocation(pos.coords.latitude,pos.coords.longitude)
-})
-}
-
-function useMapPoint(){
-if(!selectedPoint) return alert("Klik peta dulu")
-setLocation(selectedPoint.lat,selectedPoint.lng)
-}
-
-function setLocation(a,b){
-
-lat=a
-lon=b
-
-map.flyTo({center:[lon,lat],zoom:14})
-
-document.getElementById("locationText").innerText=
-"Lokasi: "+lat.toFixed(5)+", "+lon.toFixed(5)
-
-calculatePrayerTimes(new Date())
-calculateQibla()
-
-}
-
-/* ================= MATEMATIKA ================= */
-
-function deg2rad(d){return d*Math.PI/180}
-function rad2deg(r){return r*180/Math.PI}
-
-function dayOfYear(d){
-let start=new Date(d.getFullYear(),0,0)
-return Math.floor((d-start)/86400000)
-}
-
-function solarDeclination(n){
-return 23.45*Math.sin(deg2rad((360/365)*(284+n)))
-}
-
-function equationOfTime(n){
-let B=deg2rad((360/365)*(n-81))
-return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
-}
-
-function hourAngle(lat,dec,angle){
-let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
-let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
-return rad2deg(Math.acos(num/den))
-}
-
-/* ================= SHALAT ================= */
-
-function calculatePrayerTimes(date){
-
-let n=dayOfYear(date)
-let dec=solarDeclination(n)
-let eot=equationOfTime(n)
-let tz=-date.getTimezoneOffset()/60
-
-let dhuhr=12+(tz*15-lon)/15-eot/60
-
-let fajr=dhuhr-hourAngle(lat,dec,-18)/15
-let sunrise=dhuhr-hourAngle(lat,dec,-0.833)/15
-let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
-let isha=dhuhr+hourAngle(lat,dec,-17)/15
-let asr=dhuhr+hourAngle(lat,dec,-Math.atan(1+Math.tan(Math.abs(deg2rad(lat-dec)))))/15
-
-function format(t){
-let h=Math.floor(t)
-let m=Math.floor((t-h)*60)
-return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
-}
-
-timesToday={
-fajr:format(fajr),
-dhuhr:format(dhuhr),
-asr:format(asr),
-maghrib:format(maghrib),
-isha:format(isha)
-}
-
-document.getElementById("fajr").innerText=timesToday.fajr
-document.getElementById("sunrise").innerText=format(sunrise)
-document.getElementById("dhuhr").innerText=timesToday.dhuhr
-document.getElementById("asr").innerText=timesToday.asr
-document.getElementById("maghrib").innerText=timesToday.maghrib
-document.getElementById("isha").innerText=timesToday.isha
-
-let hijri=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{day:'numeric',month:'long',year:'numeric'}).format(date)
-
-document.getElementById("calendarText").innerText=
-date.toLocaleDateString("id-ID",{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-+" | "+hijri
-
-}
-
-/* ================= ADZAN CHECK ================= */
-
-setInterval(()=>{
-
-let now=new Date()
-
-let h=now.getHours().toString().padStart(2,'0')
-let m=now.getMinutes().toString().padStart(2,'0')
-
-let current=h+":"+m
-
-for(let p in timesToday){
-
-if(current===timesToday[p]){
-
-adzan[p].currentTime=0
-adzan[p].play().catch(()=>{})
-
-}
-
-}
-
-},5000)
-
-/* ================= RAMADHAN COUNTDOWN ================= */
-
-setInterval(()=>{
-
-if(!timesToday.maghrib) return
-
-let now=new Date()
-
-let parts=timesToday.maghrib.split(":")
-
-let maghrib=new Date()
-
-maghrib.setHours(parseInt(parts[0]))
-maghrib.setMinutes(parseInt(parts[1]))
-maghrib.setSeconds(0)
-
-let diff=(maghrib-now)/1000
-
-let hijriMonth=new Intl.DateTimeFormat('id-TN-u-ca-islamic',{month:'long'}).format(now).toLowerCase()
-
-if(!(hijriMonth.includes("ramadan")||hijriMonth.includes("ramadhan"))) return
-
-if(diff<=120 && diff>0){
-
-let balloon=document.getElementById("ramadanBalloon")
-
-balloon.style.display="block"
-
-balloon.innerHTML="⏳ Berbuka dalam "+Math.floor(diff)+" detik"
-
-}else{
-
-document.getElementById("ramadanBalloon").style.display="none"
-
-}
-
-},1000)
-
-/* ================= KIBLAT ================= */
-
-function calculateQibla(){
-
-const KAABA_LAT=21.4225
-const KAABA_LON=39.8262
-
-let dLon=deg2rad(KAABA_LON-lon)
-
-let y=Math.sin(dLon)*Math.cos(deg2rad(KAABA_LAT))
-
-let x=
-Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
-Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
-
-let qibla=(rad2deg(Math.atan2(y,x))+360)%360
-
-document.getElementById("qiblaAngle").innerText=
-"Arah Kiblat "+qibla.toFixed(1)+"°"
-
-window.addEventListener("deviceorientationabsolute",e=>{
-
-let heading=e.alpha
-
-if(heading==null) return
-
-document.getElementById("headingText").innerText=
-"Arah Kompas "+heading.toFixed(1)+"°"
-
-let rotate=qibla-heading
-
-document.getElementById("northArrow")
-.setAttribute("transform","rotate("+rotate+" 100 100)")
-
-})
-
-}
-
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
