@@ -175,13 +175,31 @@ let dec = solarDeclination(n)
 let eot = equationOfTime(n)
 let tz = -date.getTimezoneOffset() / 60
 
+/* waktu tengah hari matahari */
+
 let dhuhr = 12 + (tz * 15 - lon) / 15 - eot / 60
 
-let fajr = dhuhr - hourAngle(lat, dec, -18) / 15
-let sunrise = dhuhr - hourAngle(lat, dec, -0.833) / 15
-let maghrib = dhuhr + hourAngle(lat, dec, -0.833) / 15
-let isha = dhuhr + hourAngle(lat, dec, -17) / 15
-let asr = dhuhr + hourAngle(lat, dec, -Math.atan(1 + Math.tan(Math.abs(deg2rad(lat - dec))))) / 15
+/* parameter metode Kemenag */
+
+let fajrAngle = -20
+let ishaAngle = -18
+let sunriseAngle = -0.833
+
+/* hitung waktu */
+
+let fajr = dhuhr - hourAngle(lat, dec, fajrAngle) / 15
+let sunrise = dhuhr - hourAngle(lat, dec, sunriseAngle) / 15
+let maghrib = dhuhr + hourAngle(lat, dec, sunriseAngle) / 15
+let isha = dhuhr + hourAngle(lat, dec, ishaAngle) / 15
+
+/* ASHAR (shadow factor 1) */
+
+let latRad = deg2rad(lat)
+let decRad = deg2rad(dec)
+
+let asrAngle = -rad2deg(Math.atan(1 / (1 + Math.tan(Math.abs(latRad - decRad)))))
+
+let asr = dhuhr + hourAngle(lat, dec, asrAngle) / 15
 
 function format(t) {
 
@@ -203,6 +221,8 @@ isha: format(isha)
 
 }
 
+/* update tampilan */
+
 for (let id in timesToday) {
 
 if (document.getElementById(id))
@@ -210,7 +230,7 @@ document.getElementById(id).innerText = timesToday[id]
 
 }
 
-/* MASJID MODE */
+/* mode masjid */
 
 document.getElementById("mfajr").innerText = timesToday.fajr
 document.getElementById("msunrise").innerText = timesToday.sunrise
@@ -222,6 +242,7 @@ document.getElementById("misha").innerText = timesToday.isha
 highlightPrayer()
 
 }
+
 
 /* ================= HIGHLIGHT ================= */
 
