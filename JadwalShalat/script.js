@@ -54,7 +54,8 @@ document.getElementById("locationText").innerText=
 
 calculatePrayerTimes(new Date())
 
-calculateQibla()
+startCompass()
+updateCompass()
 
 }
 
@@ -203,17 +204,55 @@ document.getElementById("qiblaAngle").innerText=
 
 window.addEventListener("deviceorientationabsolute",e=>{
 
-let heading=e.alpha
+let heading=0
 
-if(heading==null) return
+function startCompass(){
 
-document.getElementById("headingText").innerText=
-"Arah Kompas "+heading.toFixed(1)+"°"
+if (window.DeviceOrientationEvent){
+
+window.addEventListener("deviceorientation",function(event){
+
+let alpha=event.alpha
+
+if(alpha===null) return
+
+heading = 360 - alpha
+
+document.getElementById("headingText").innerText =
+"Arah Kompas " + heading.toFixed(1) + "°"
+
+updateCompass()
+
+},true)
+
+}
+
+}
+
+function updateCompass(){
+
+const KAABA_LAT=21.4225
+const KAABA_LON=39.8262
+
+let dLon=deg2rad(KAABA_LON-lon)
+
+let y=Math.sin(dLon)*Math.cos(deg2rad(KAABA_LAT))
+
+let x=
+Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
+Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
+
+let qibla=(rad2deg(Math.atan2(y,x))+360)%360
+
+document.getElementById("qiblaAngle").innerText =
+"Arah Kiblat " + qibla.toFixed(1) + "°"
 
 let rotate=qibla-heading
 
 document.getElementById("northArrow")
 .setAttribute("transform","rotate("+rotate+" 100 100)")
+
+}
 
 })
 
