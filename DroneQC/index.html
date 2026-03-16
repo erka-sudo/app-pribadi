@@ -3,7 +3,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Drone MRK QC Tool</title>
+<title>Drone QC Tool</title>
 
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
@@ -22,7 +22,7 @@ gap:10px;
 }
 
 .left{
-width:300px;
+width:320px;
 background:white;
 padding:10px;
 border-radius:8px;
@@ -37,8 +37,18 @@ border-radius:8px;
 box-shadow:0 0 10px rgba(0,0,0,0.1);
 }
 
-h2{
-margin-top:0;
+.flight{
+padding:6px;
+cursor:pointer;
+border-bottom:1px solid #ddd;
+}
+
+.flight:hover{
+background:#eee;
+}
+
+.selected{
+background:#cde3ff;
 }
 
 table{
@@ -52,22 +62,8 @@ border:1px solid #ccc;
 padding:4px;
 }
 
-th{
-background:#eee;
-}
-
 .red{
 color:red;
-}
-
-.flight{
-cursor:pointer;
-padding:5px;
-border-bottom:1px solid #ddd;
-}
-
-.flight:hover{
-background:#eee;
 }
 
 </style>
@@ -75,14 +71,14 @@ background:#eee;
 
 <body>
 
-<h2>Drone MRK QC Tool</h2>
+<h2>Drone QC Tool</h2>
 
 <input type="file" id="folder" webkitdirectory multiple>
 
 Threshold
 <input id="threshold" value="0.05" size="6">
 
-<button onclick="loadProject()">Load Project</button>
+<button onclick="loadProject()">Open Project</button>
 
 <br><br>
 
@@ -98,7 +94,7 @@ Threshold
 
 <div class="right">
 
-<div id="plot" style="height:400px;"></div>
+<div id="plot" style="height:450px;"></div>
 
 <h3>QC Table</h3>
 
@@ -113,6 +109,7 @@ Threshold
 <th>acc_x</th>
 <th>acc_y</th>
 <th>acc_z</th>
+<th>flight</th>
 </tr>
 </thead>
 
@@ -127,6 +124,7 @@ Threshold
 <script>
 
 let flights={}
+let selectedFlights=new Set()
 
 function loadProject(){
 
@@ -136,18 +134,51 @@ flights={}
 
 for(let file of files){
 
-if(!file.name.toUpperCase().endsWith(".MRK")) continue
+if(file.name.endsWith(".MRK")){
 
-const path=file.webkitRelativePath
-const flight=path.split("/")[0]
+let flight=file.webkitRelativePath.split("/")[0]
 
-if(!flights[flight]) flights[flight]=[]
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[]}
+
+flights[flight].mrk=file
+
+}
+
+if(file.name.endsWith("_V.JPG")){
+
+let flight=file.webkitRelativePath.split("/")[0]
+
+if(!flights[flight]) flights[flight]={mrk:null,jpgs:[]}
+
+flights[flight].jpgs.push(file.name)
+
+}
+
+}
+
+for(let f in flights){
+
+flights[f].jpgs.sort()
+
+}
+
+readMRK()
+
+}
+
+function readMRK(){
+
+for(let f in flights){
+
+let file=flights[f].mrk
+
+if(!file) continue
 
 const reader=new FileReader()
 
 reader.onload=function(e){
 
-parseMRK(e.target.result,flight)
+parseMRK(e.target.result,f)
 
 }
 
@@ -163,40 +194,36 @@ function parseMRK(text,flight){
 
 const lines=text.split("\n")
 
+flights[flight].points=[]
+
 for(let line of lines){
 
-const latMatch=line.match(/(-?\d+\.\d+),Lat/)
-const lonMatch=line.match(/(-?\d+\.\d+),Lon/)
-const altMatch=line.match(/(-?\d+\.\d+),Ellh/)
-const accMatch=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
+const lat=line.match(/(-?\d+\.\d+),Lat/)
+const lon=line.match(/(-?\d+\.\d+),Lon/)
+const alt=line.match(/(-?\d+\.\d+),Ellh/)
+const acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 
-if(!latMatch) continue
+if(!lat) continue
 
-const parts=line.trim().split(/\s+/)
+flights[flight].points.push({
 
-const file=parts[0]
-
-const lat=parseFloat(latMatch[1])
-const lon=parseFloat(lonMatch[1])
-const alt=parseFloat(altMatch[1])
-
-const ax=parseFloat(accMatch[1])
-const ay=parseFloat(accMatch[2])
-const az=parseFloat(accMatch[3])
-
-if(!flights[flight]) flights[flight]=[]
-
-flights[flight].push({
-
-file:file,
-lat:lat,
-lon:lon,
-alt:alt,
-ax:ax,
-ay:ay,
-az:az
+file:null,
+lat:parseFloat(lat[1]),
+lon:parseFloat(lon[1]),
+alt:parseFloat(alt[1]),
+ax:parseFloat(acc[1]),
+ay:parseFloat(acc[2]),
+az:parseFloat(acc[3])
 
 })
+
+}
+
+let jpgs=flights[flight].jpgs
+
+for(let i=0;i<Math.min(jpgs.length,flights[flight].points.length);i++){
+
+flights[flight].points[i].file=jpgs[i]
 
 }
 
@@ -210,14 +237,15 @@ div.innerHTML=""
 
 for(let f in flights){
 
-const el=document.createElement("div")
+let el=document.createElement("div")
 
 el.className="flight"
+
 el.innerText=f
 
 el.onclick=function(){
 
-plotFlight(f)
+toggleFlight(f,el)
 
 }
 
@@ -227,22 +255,45 @@ div.appendChild(el)
 
 }
 
-function plotFlight(flight){
+function toggleFlight(f,el){
 
-const data=flights[flight]
+if(selectedFlights.has(f)){
 
-const threshold=parseFloat(document.getElementById("threshold").value)
+selectedFlights.delete(f)
+
+el.classList.remove("selected")
+
+}else{
+
+selectedFlights.add(f)
+
+el.classList.add("selected")
+
+}
+
+plotFlights()
+
+}
+
+function plotFlights(){
 
 let lat=[]
 let lon=[]
 let colors=[]
 
+const threshold=parseFloat(document.getElementById("threshold").value)
+
 const tbody=document.querySelector("#table tbody")
+
 tbody.innerHTML=""
+
+for(let f of selectedFlights){
+
+let data=flights[f].points
 
 for(let r of data){
 
-const acc=Math.max(r.ax,r.ay,r.az)
+let acc=Math.max(r.ax,r.ay,r.az)
 
 lat.push(r.lat)
 lon.push(r.lon)
@@ -254,16 +305,19 @@ let tr=document.createElement("tr")
 if(acc>threshold) tr.className="red"
 
 tr.innerHTML=`
-<td>${r.file}</td>
+<td>${r.file||""}</td>
 <td>${r.lat}</td>
 <td>${r.lon}</td>
 <td>${r.alt}</td>
 <td>${r.ax}</td>
 <td>${r.ay}</td>
 <td>${r.az}</td>
+<td>${f}</td>
 `
 
 tbody.appendChild(tr)
+
+}
 
 }
 
@@ -277,7 +331,8 @@ marker:{color:colors,size:6}
 }],{
 
 xaxis:{title:"Longitude"},
-yaxis:{title:"Latitude",scaleanchor:"x"}
+yaxis:{title:"Latitude",scaleanchor:"x"},
+dragmode:"pan"
 
 })
 
