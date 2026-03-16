@@ -303,65 +303,43 @@ document.getElementById("qiblaLine")
 
 }
 
-/* ================= KOMPAS ================= */
-
 function startCompass() {
 
 if (window.DeviceOrientationEvent) {
 
-window.addEventListener("deviceorientationabsolute", handleOrientation, true)
-window.addEventListener("deviceorientation", handleOrientation, true)
+window.addEventListener("deviceorientation", function (event) {
 
-}
+let newHeading
 
-}
-
-function handleOrientation(event) {
-
-let newHeading = null
-
-/* iOS */
-if (event.webkitCompassHeading !== undefined) {
+if (event.webkitCompassHeading) {
 
 newHeading = event.webkitCompassHeading
 
-}
-
-/* Android absolute sensor */
-else if (event.absolute === true && event.alpha !== null) {
-
-newHeading = event.alpha
-
-}
-
-/* fallback */
-else if (event.alpha !== null) {
+} else if (event.alpha !== null) {
 
 newHeading = 360 - event.alpha
 
+} else {
+
+return
+
 }
 
-if (newHeading === null) return
+/* tambahkan offset koreksi */
 
-heading = (newHeading + 360) % 360
+heading = (newHeading + compassOffset + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
 
 updateCompass()
 
-}
+}, true)
 
-function updateCompass() {
-
-document.getElementById("compassNeedle")
-.setAttribute("transform","rotate("+heading+" 100 100)")
-
-if(directionElement){
-directionElement.style.transform="rotate("+heading+"deg)"
 }
 
 }
+
 
 /* ================= HIJRI ================= */
 
