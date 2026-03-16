@@ -11,11 +11,7 @@
 
 <style>
 
-body{
-font-family:Arial;
-margin:0;
-background:#f2f2f2;
-}
+body{font-family:Arial;margin:0;background:#f2f2f2;}
 
 .topbar{
 background:white;
@@ -41,9 +37,7 @@ display:flex;
 flex-direction:column;
 }
 
-#map{
-flex:3;
-}
+#map{flex:3;}
 
 .flightPanel{
 flex:1;
@@ -59,13 +53,9 @@ border-bottom:1px solid #eee;
 cursor:pointer;
 }
 
-.flight:hover{
-background:#eee;
-}
+.flight:hover{background:#eee;}
 
-.selected{
-background:#cde3ff;
-}
+.selected{background:#cde3ff;}
 
 table{
 width:100%;
@@ -78,9 +68,7 @@ border:1px solid #ccc;
 padding:4px;
 }
 
-.red{
-color:red;
-}
+.red{color:red;}
 
 .highlight{
 background:#fff2a8;
@@ -89,6 +77,7 @@ background:#fff2a8;
 </style>
 
 </head>
+
 
 <body>
 
@@ -204,10 +193,7 @@ map.on("load",()=>{
 
 map.addSource("points",{
 type:"geojson",
-data:{
-type:"FeatureCollection",
-features:[]
-}
+data:{type:"FeatureCollection",features:[]}
 })
 
 map.addLayer({
@@ -256,12 +242,14 @@ initMap()
 document.getElementById("pointSize").addEventListener("input",drawFlights)
 document.getElementById("threshold").addEventListener("input",drawFlights)
 
+
 function getFlightName(path){
 
 let parts=path.split("/")
 return parts[parts.length-2]
 
 }
+
 
 function loadProject(){
 
@@ -298,9 +286,25 @@ readMRK()
 
 }
 
+
+function sortJPG(list){
+
+return list.sort((a,b)=>{
+
+let na=parseInt(a.split("_")[2])
+let nb=parseInt(b.split("_")[2])
+return na-nb
+
+})
+
+}
+
+
 function readMRK(){
 
 for(let f in flights){
+
+flights[f].jpgs=sortJPG(flights[f].jpgs)
 
 let reader=new FileReader()
 
@@ -317,6 +321,7 @@ reader.readAsText(flights[f].mrk)
 setTimeout(buildFlightList,500)
 
 }
+
 
 function parseMRK(text,flight){
 
@@ -350,6 +355,7 @@ flights[flight].points=points
 
 }
 
+
 function buildFlightList(){
 
 const div=document.getElementById("flightList")
@@ -365,15 +371,11 @@ el.innerText=f
 el.onclick=function(){
 
 if(selectedFlights.has(f)){
-
 selectedFlights.delete(f)
 el.classList.remove("selected")
-
 }else{
-
 selectedFlights.add(f)
 el.classList.add("selected")
-
 }
 
 drawFlights()
@@ -385,6 +387,7 @@ div.appendChild(el)
 }
 
 }
+
 
 function drawFlights(){
 
@@ -403,28 +406,30 @@ let id=0
 
 for(let f of selectedFlights){
 
-for(let p of flights[f].points){
+let jpgs=flights[f].jpgs
+
+for(let i=0;i<flights[f].points.length;i++){
+
+let p=flights[f].points[i]
 
 let acc=Math.max(p.ax,p.ay,p.az)
 
+let fileName=jpgs[i] || ""
+
 features.push({
 type:"Feature",
-geometry:{
-type:"Point",
-coordinates:[p.lon,p.lat]
-},
-properties:{
-id:id,
-acc:acc
-}
+geometry:{type:"Point",coordinates:[p.lon,p.lat]},
+properties:{id:id,acc:acc}
 })
 
 let tr=document.createElement("tr")
 
 if(acc>threshold) tr.classList.add("red")
 
+tr.dataset.id=id
+
 tr.innerHTML=`
-<td>${id}</td>
+<td>${fileName}</td>
 <td>${p.lat}</td>
 <td>${p.lon}</td>
 <td>${p.alt}</td>
@@ -439,7 +444,11 @@ tbody.appendChild(tr)
 rowById[id]=tr
 pointById[id]=p
 
-tr.onclick=()=>highlightPoint(id)
+tr.addEventListener("click",function(){
+
+highlightPoint(parseInt(this.dataset.id))
+
+})
 
 id++
 
@@ -463,6 +472,7 @@ map.setPaintProperty("points","circle-color",[
 
 }
 
+
 function highlightPoint(id){
 
 highlightId=id
@@ -485,6 +495,7 @@ zoom:18
 
 }
 
+
 function zoomToFlights(){
 
 let bounds=new maplibregl.LngLatBounds()
@@ -500,12 +511,11 @@ bounds.extend([p.lon,p.lat])
 }
 
 if(!bounds.isEmpty()){
-
 map.fitBounds(bounds,{padding:40})
-
 }
 
 }
+
 
 function selectAllFlights(){
 
@@ -517,6 +527,7 @@ buildFlightList()
 drawFlights()
 
 }
+
 
 function unselectAllFlights(){
 
