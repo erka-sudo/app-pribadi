@@ -28,6 +28,7 @@ Jadwal Shalat • Arah Kiblat
 <button onclick="getGPS()">GPS</button>
 <button onclick="useMapPoint()">Pilih dari Peta</button>
 <button onclick="openMasjidMode()">Mode Masjid</button>
+<button onclick="openMonthly()">Jadwal 1 Bulan</button>
 
 <div id="locationText">Lokasi: -</div>
 
@@ -63,21 +64,15 @@ Jadwal Shalat • Arah Kiblat
 
 <svg viewBox="0 0 200 200" width="220">
 
-<!-- lingkaran -->
-
 <circle cx="100" cy="100" r="95"
 stroke="#333"
 stroke-width="6"
 fill="#fafafa"/>
 
-<!-- arah mata angin -->
-
 <text x="100" y="20" text-anchor="middle">N</text>
 <text x="180" y="105" text-anchor="middle">E</text>
 <text x="100" y="195" text-anchor="middle">S</text>
 <text x="20" y="105" text-anchor="middle">W</text>
-
-<!-- garis kiblat -->
 
 <line id="qiblaLine"
 x1="100" y1="100"
@@ -86,8 +81,6 @@ stroke="green"
 stroke-width="6"
 stroke-linecap="round"
 />
-
-<!-- jarum kompas -->
 
 <polygon id="compassNeedle"
 points="100,20 110,100 100,90 90,100"
@@ -99,6 +92,43 @@ fill="red"
 </div>
 
 <div id="headingText"></div>
+
+</div>
+
+
+<!-- MODAL BULANAN -->
+
+<div id="monthlyModal">
+
+<div class="modalContent">
+
+<h2>Jadwal Shalat 1 Bulan</h2>
+
+<div class="tableWrap">
+<table id="monthlyTable">
+
+<thead>
+<tr>
+<th>Hari</th>
+<th>Masehi</th>
+<th>Hijriyah</th>
+<th>Subuh</th>
+<th>Syuruq</th>
+<th>Dzuhur</th>
+<th>Ashar</th>
+<th>Maghrib</th>
+<th>Isya</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+</div>
+
+<button onclick="closeMonthly()">Tutup</button>
+
+</div>
 
 </div>
 
