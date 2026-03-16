@@ -2,222 +2,120 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Drone MRK QC Tool</title>
-
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<title>Drone Toolbox</title>
 
 <style>
 
 body{
 font-family:Arial;
 background:#f2f2f2;
-padding:20px;
+padding:40px;
 }
 
 .box{
 background:white;
-padding:20px;
-max-width:1200px;
-margin:auto;
+padding:30px;
 border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
+max-width:650px;
+margin:auto;
+box-shadow:0 0 15px rgba(0,0,0,0.1);
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-font-size:13px;
-}
-
-th,td{
-border:1px solid #ccc;
-padding:4px;
-}
-
-th{
-background:#eee;
-}
-
-.red{
-color:red;
-}
-
-.toolbar{
+h1{
+text-align:center;
 margin-bottom:10px;
 }
 
+.subtitle{
+text-align:center;
+color:#666;
+margin-bottom:30px;
+}
+
+.tool{
+display:block;
+padding:15px;
+margin-top:15px;
+background:#2b7cff;
+color:white;
+text-decoration:none;
+border-radius:6px;
+text-align:center;
+font-size:18px;
+}
+
+.tool small{
+display:block;
+font-size:13px;
+opacity:0.9;
+margin-top:5px;
+}
+
+.tool:hover{
+background:#1a5fd0;
+}
+
+.footer{
+margin-top:25px;
+font-size:12px;
+text-align:center;
+color:#888;
+}
+
 </style>
+
+<script>
+
+let password = "drone123";  // ganti password di sini
+
+let input = prompt("Enter access password");
+
+if(input !== password){
+
+document.write("<h2 style='text-align:center;margin-top:100px'>Access Denied</h2>");
+throw new Error("Access denied");
+
+}
+
+</script>
+
 </head>
 
 <body>
 
 <div class="box">
 
-<h2>Drone MRK QC Tool</h2>
+<h1>Drone Toolbox</h1>
 
-<div class="toolbar">
-
-<input type="file" id="folder" webkitdirectory>
-
-Threshold
-<input id="threshold" value="0.05" size="6">
-
-<button onclick="loadProject()">Open Project</button>
-
+<div class="subtitle">
+Mapping Utilities for Drone Survey
 </div>
 
-<div id="plot" style="height:500px;"></div>
+<a class="tool" href="M4e_KMLtoKMZ/">
+M4E KML → KMZ Converter
+<small>Convert Global Mapper KML polygon to DJI Matrice 4E KMZ format</small>
+</a>
 
-<h3>QC Table</h3>
+<a class="tool" href="KoordinatConverter/">
+Coordinate Converter
+<small>Geodetic • UTM • TM-3 • Batch CSV conversion (WGS84)</small>
+</a>
 
-<table id="table">
+<a class="tool" href="DroneQC/">
+QC Foto Drone
+<small>Check flight line & missing photos (coming soon)</small>
+</a>
 
-<thead>
-<tr>
-<th>file</th>
-<th>lat</th>
-<th>lon</th>
-<th>alt</th>
-<th>acc_x</th>
-<th>acc_y</th>
-<th>acc_z</th>
-<th>flight</th>
-</tr>
-</thead>
+<a class="tool" href="#">
+Map Viewer
+<small>Quick map viewer for KML / GeoJSON (coming soon)</small>
+</a>
 
-<tbody></tbody>
-
-</table>
-
+<div class="footer">
+Drone Tools • Web Utilities
 </div>
 
-<script>
-
-let lat_all=[]
-let lon_all=[]
-let colors=[]
-
-function loadProject(){
-
-const files=document.getElementById("folder").files
-
-const threshold=parseFloat(document.getElementById("threshold").value)
-
-lat_all=[]
-lon_all=[]
-colors=[]
-
-const tbody=document.querySelector("#table tbody")
-tbody.innerHTML=""
-
-let mrkFiles=[]
-
-for(let file of files){
-
-if(file.name.toUpperCase().endsWith(".MRK")){
-
-mrkFiles.push(file)
-
-}
-
-}
-
-for(let file of mrkFiles){
-
-const reader=new FileReader()
-
-reader.onload=function(e){
-
-parseMRK(e.target.result,file.webkitRelativePath,threshold)
-
-}
-
-reader.readAsText(file)
-
-}
-
-}
-
-function parseMRK(text,flight,threshold){
-
-const lines=text.split("\n")
-
-for(let line of lines){
-
-const latMatch=line.match(/(-?\d+\.\d+),Lat/)
-const lonMatch=line.match(/(-?\d+\.\d+),Lon/)
-const altMatch=line.match(/(-?\d+\.\d+),Ellh/)
-const accMatch=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
-
-if(!latMatch) continue
-
-const parts=line.trim().split(/\s+/)
-
-const file=parts[0]
-
-const lat=parseFloat(latMatch[1])
-const lon=parseFloat(lonMatch[1])
-const alt=parseFloat(altMatch[1])
-
-const ax=parseFloat(accMatch[1])
-const ay=parseFloat(accMatch[2])
-const az=parseFloat(accMatch[3])
-
-const acc=Math.max(ax,ay,az)
-
-lat_all.push(lat)
-lon_all.push(lon)
-
-colors.push(acc<=threshold?"green":"red")
-
-const tbody=document.querySelector("#table tbody")
-
-let tr=document.createElement("tr")
-
-if(acc>threshold) tr.className="red"
-
-tr.innerHTML=`
-<td>${file}</td>
-<td>${lat}</td>
-<td>${lon}</td>
-<td>${alt}</td>
-<td>${ax}</td>
-<td>${ay}</td>
-<td>${az}</td>
-<td>${flight}</td>
-`
-
-tbody.appendChild(tr)
-
-}
-
-drawPlot()
-
-}
-
-function drawPlot(){
-
-Plotly.newPlot("plot",[{
-
-x:lon_all,
-y:lat_all,
-mode:"markers",
-marker:{
-color:colors,
-size:6
-}
-
-}],{
-
-xaxis:{title:"Longitude"},
-yaxis:{title:"Latitude",scaleanchor:"x"},
-margin:{t:20}
-
-})
-
-}
-
-</script>
+</div>
 
 </body>
 </html>
