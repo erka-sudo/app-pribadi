@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>Drone QC Tool</title>
 
@@ -17,8 +18,8 @@ background:#f2f2f2;
 }
 
 .topbar{
-padding:10px;
 background:white;
+padding:10px;
 border-bottom:1px solid #ccc;
 }
 
@@ -27,8 +28,6 @@ display:flex;
 height:calc(100vh - 60px);
 }
 
-/* QC TABLE LEFT */
-
 .qcPanel{
 width:35%;
 background:white;
@@ -36,8 +35,36 @@ overflow:auto;
 border-right:1px solid #ccc;
 }
 
-.qcPanel h3{
-margin:10px;
+.right{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+#map{
+flex:3;
+}
+
+.flightPanel{
+flex:1;
+background:white;
+border-top:1px solid #ccc;
+overflow:auto;
+padding:10px;
+}
+
+.flight{
+padding:6px;
+cursor:pointer;
+border-bottom:1px solid #eee;
+}
+
+.flight:hover{
+background:#eee;
+}
+
+.selected{
+background:#cde3ff;
 }
 
 table{
@@ -59,44 +86,6 @@ color:red;
 background:#fff2a8;
 }
 
-/* RIGHT PANEL */
-
-.right{
-flex:1;
-display:flex;
-flex-direction:column;
-}
-
-/* MAP */
-
-#map{
-flex:3;
-}
-
-/* FLIGHT LIST */
-
-.flightPanel{
-flex:1;
-background:white;
-border-top:1px solid #ccc;
-overflow:auto;
-padding:10px;
-}
-
-.flight{
-padding:5px;
-cursor:pointer;
-border-bottom:1px solid #eee;
-}
-
-.flight:hover{
-background:#eee;
-}
-
-.selected{
-background:#cde3ff;
-}
-
 </style>
 </head>
 
@@ -115,7 +104,7 @@ Threshold
 <button onclick="unselectAllFlights()">Unselect All</button>
 
 Point Size
-<input type="range" id="pointSize" min="4" max="14" value="6" oninput="drawFlights()">
+<input type="range" id="pointSize" min="4" max="14" value="6">
 
 </div>
 
@@ -123,7 +112,7 @@ Point Size
 
 <div class="qcPanel">
 
-<h3>QC Table</h3>
+<h3 style="margin:10px">QC Table</h3>
 
 <table id="table">
 
@@ -168,9 +157,10 @@ let flights={}
 let selectedFlights=new Set()
 
 let map
+
 let markers=[]
-let markerRefs={}
-let idMap={}
+let markerMap={}
+let rowMap={}
 let lastFlight=null
 
 function initMap(){
@@ -209,6 +199,8 @@ zoom:14
 }
 
 initMap()
+
+document.getElementById("pointSize").addEventListener("input",drawFlights)
 
 function getFlightName(path){
 
@@ -252,7 +244,9 @@ flights[flight].jpgs.push(file.name)
 }
 
 for(let f in flights){
+
 flights[f].jpgs.sort()
+
 }
 
 readMRK()
@@ -427,29 +421,26 @@ for(let m of markers) m.remove()
 
 markers=[]
 
+markerMap={}
+rowMap={}
+
 }
 
 function drawFlights(){
 
 clearMarkers()
 
-markerRefs={}
-
-let size=document.getElementById("pointSize").value
-let threshold=parseFloat(document.getElementById("threshold").value)
-
 const tbody=document.querySelector("#table tbody")
 tbody.innerHTML=""
 
-idMap={}
+let size=document.getElementById("pointSize").value
+let threshold=parseFloat(document.getElementById("threshold").value)
 
 let id=0
 
 for(let f of selectedFlights){
 
-let data=flights[f].points
-
-for(let p of data){
+for(let p of flights[f].points){
 
 let acc=Math.max(p.ax,p.ay,p.az)
 
@@ -469,22 +460,11 @@ let marker=new maplibregl.Marker(el)
 
 markers.push(marker)
 
-markerRefs[id]=el
+markerMap[id]=el
 
-el.onclick=function(){
-
-highlightRow(id)
-highlightPoint(id)
-
-map.flyTo({center:[p.lon,p.lat],zoom:18})
-
-}
+el.onclick=()=>selectPoint(id,p)
 
 let tr=document.createElement("tr")
-
-tr.dataset.id=id
-
-if(acc>threshold) tr.classList.add("red")
 
 tr.innerHTML=`
 <td>${p.file||""}</td>
@@ -497,16 +477,13 @@ tr.innerHTML=`
 <td>${f}</td>
 `
 
-tr.onclick=function(){
+if(acc>threshold) tr.classList.add("red")
 
-highlightRow(id)
-highlightPoint(id)
-
-map.flyTo({center:[p.lon,p.lat],zoom:18})
-
-}
+tr.onclick=()=>selectPoint(id,p)
 
 tbody.appendChild(tr)
+
+rowMap[id]=tr
 
 id++
 
@@ -516,31 +493,27 @@ id++
 
 }
 
-function highlightRow(id){
+function selectPoint(id,p){
 
-document.querySelectorAll("#table tbody tr")
-.forEach(r=>r.classList.remove("rowHighlight"))
+for(let k in markerMap){
 
-let row=document.querySelector(`#table tbody tr[data-id='${id}']`)
-
-if(row){
-
-row.classList.add("rowHighlight")
-row.scrollIntoView({block:"center"})
+markerMap[k].style.border="none"
 
 }
 
-}
+markerMap[id].style.border="3px solid yellow"
 
-function highlightPoint(id){
+for(let r in rowMap){
 
-for(let k in markerRefs){
-
-markerRefs[k].style.background="#00ff00"
+rowMap[r].classList.remove("rowHighlight")
 
 }
 
-markerRefs[id].style.background="yellow"
+rowMap[id].classList.add("rowHighlight")
+
+rowMap[id].scrollIntoView({block:"center"})
+
+map.flyTo({center:[p.lon,p.lat],zoom:18})
 
 }
 
