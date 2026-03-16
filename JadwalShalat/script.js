@@ -331,7 +331,7 @@ document.getElementById("qiblaLine")
 /* ================= KOMPAS ================= */
 
 /* koreksi selisih sensor browser */
-let compassOffset = 24
+let compassOffset = 20
 
 function startCompass() {
 
