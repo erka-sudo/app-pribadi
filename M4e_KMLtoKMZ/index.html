@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KML → KMZ ZIP Normalizer v2.1</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f2f2;
+padding:30px;
+}
+
+.box{
+background:white;
+padding:25px;
+border-radius:8px;
+width:420px;
+margin:auto;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input,button{
+width:100%;
+padding:10px;
+margin-top:10px;
+}
+
+button{
+cursor:pointer;
+background:#2b7cff;
+color:white;
+border:none;
+}
+
+#downloadArea{
+margin-top:15px;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>KML → KMZ ZIP Normalizer v2.1</h2>
+
+<label>File KML</label>
+<input type="file" id="file" accept=".kml">
+
+<label>Nama Output (ZIP)</label>
+<input type="text" id="outname">
+
+<p id="poly">Polygon: -</p>
+
+<button onclick="exportZip()">Export ZIP</button>
+
+<div id="downloadArea"></div>
+
+</div>
+
+<script>
+
+const TEMPLATE_HEADER = `<?xml version='1.0' encoding='UTF-8'?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><Style id="area1">
+    <LineStyle>
+      <color>FF000000</color>
+      <width>1</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>BF000000</color>
+      <fill>0</fill>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
+    <Placemark>
+      <description>{desc}</description>
+      <styleUrl>#area1</styleUrl>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+`;
+
+const TEMPLATE_FOOTER = `            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+</Document></kml>`;
+
+
+let coords = [];
+
+
+document.getElementById("file").addEventListener("change", async function(){
+
+const file = this.files[0];
+if(!file) return;
+
+document.getElementById("outname").value = file.name.replace(".kml","");
+
+const text = await file.text();
+
+parseKML(text);
+
+});
+
+
+function parseKML(text){
+
+const parser = new DOMParser();
+const xml = parser.parseFromString(text,"text/xml");
+
+const list = xml.getElementsByTagName("coordinates");
+
+coords = [];
+
+for(let c of list){
+
+let t = c.textContent.trim();
+
+if(!t) continue;
+
+let lines = [];
+
+for(let l of t.split(/\s+/)){
+
+let parts = l.split(",");
+
+if(parts.length===2) parts.push("0");
+
+lines.push(parts.join(","));
+
+}
+
+coords.push(lines.join("\n"));
+
+}
+
+document.getElementById("poly").innerText = "Polygon: "+coords.length;
+
+}
+
+
+async function exportZip(){
+
+if(coords.length===0){
+
+alert("Tidak ada polygon");
+
+return;
+
+}
+
+const base = document.getElementById("outname").value.trim();
+
+if(!base){
+
+alert("Nama output kosong");
+
+return;
+
+}
+
+const mainzip = new JSZip();
+
+for(let i=0;i<coords.length;i++){
+
+let desc = base+"_"+(i+1);
+
+let kml =
+TEMPLATE_HEADER.replace("{desc}",desc)
++ coords[i]
++ "\n"
++ TEMPLATE_FOOTER;
+
+let kmz = new JSZip();
+
+kmz.file("wpmz/template.kml",kml);
+
+let kmzBlob = await kmz.generateAsync({type:"blob"});
+
+mainzip.file(desc+".kmz",kmzBlob);
+
+}
+
+let final = await mainzip.generateAsync({type:"blob"});
+
+let url = URL.createObjectURL(final);
+
+let link = document.createElement("a");
+
+link.href = url;
+
+link.download = base + ".zip";
+
+link.textContent = "Download ZIP";
+
+link.style.display="block";
+link.style.marginTop="10px";
+
+const area = document.getElementById("downloadArea");
+
+area.innerHTML = "";
+
+area.appendChild(link);
+
+}
+
+</script>
+
+</body>
+</html>
