@@ -6,12 +6,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Jadwal Shalat & Arah Kiblat</title>
+<title>Jadwal Shalat</title>
 
 <link rel="stylesheet" href="style.css">
 
 <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet">
-
 <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
 
 </head>
@@ -19,7 +18,7 @@
 <body>
 
 <div class="header">
-Jadwal Shalat • Peta • Arah Kiblat
+Jadwal Shalat • Arah Kiblat
 </div>
 
 <div id="map"></div>
@@ -28,13 +27,13 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <button onclick="getGPS()">GPS</button>
 <button onclick="useMapPoint()">Pilih dari Peta</button>
-<button onclick="openModal()">Jadwal 1 Bulan</button>
+<button onclick="openMasjidMode()">Mode Masjid</button>
 
 <div id="locationText">Lokasi: -</div>
 
 <h3 id="calendarText"></h3>
 
-<table>
+<table id="prayTable">
 
 <tr>
 <th>Subuh</th>
@@ -58,18 +57,13 @@ Jadwal Shalat • Peta • Arah Kiblat
 
 <h3 style="text-align:center">Arah Kiblat</h3>
 
-<div style="text-align:center">
-
 <div id="qiblaAngle"></div>
 
 <div id="compassContainer">
 
 <svg id="compass" viewBox="0 0 200 200">
 
-<circle cx="100" cy="100" r="95"
-stroke="#333"
-stroke-width="6"
-fill="#fafafa"/>
+<circle cx="100" cy="100" r="95" stroke="#333" stroke-width="6" fill="#fafafa"/>
 
 <text x="100" y="20" text-anchor="middle">N</text>
 <text x="180" y="105" text-anchor="middle">E</text>
@@ -88,21 +82,34 @@ fill="red"/>
 
 </div>
 
-</div>
 
-<div id="ramadanBalloon"></div>
+<div id="masjidMode">
 
-<div class="modal" id="modal">
+<div id="masjidClock"></div>
 
-<div class="modal-content">
+<table id="masjidTable">
 
-<span class="close" onclick="closeModal()">×</span>
+<tr>
+<th>Subuh</th>
+<th>Syuruq</th>
+<th>Dzuhur</th>
+<th>Ashar</th>
+<th>Maghrib</th>
+<th>Isya</th>
+</tr>
 
-<h3>Jadwal Shalat 1 Bulan</h3>
+<tr>
+<td id="mfajr"></td>
+<td id="msunrise"></td>
+<td id="mdhuhr"></td>
+<td id="masr"></td>
+<td id="mmaghrib"></td>
+<td id="misha"></td>
+</tr>
 
-<table id="monthTable"></table>
+</table>
 
-</div>
+<button onclick="closeMasjidMode()">Kembali</button>
 
 </div>
 
