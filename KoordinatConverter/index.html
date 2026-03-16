@@ -114,14 +114,30 @@ function getTM3proj(){
 
 let zone = document.getElementById("tm3zone").value;
 
-let parts = zone.split(".");
-let base = parseInt(parts[0]);
+const cm = {
+"46.1":96,
+"46.2":99,
+"47.1":102,
+"47.2":105,
+"48.1":102,
+"48.2":105,
+"49.1":108,
+"49.2":111,
+"50.1":114,
+"50.2":117,
+"51.1":120,
+"51.2":123,
+"52.1":126,
+"52.2":129,
+"53.1":132,
+"53.2":135,
+"54.1":138,
+"54.2":141
+};
 
-let lon0 = 96 + (base-46)*6;
+let lon0 = cm[zone];
 
-if(parts[1]==2) lon0 += 3;
-
-return "+proj=tmerc +lat_0=0 +lon_0="+lon0+" +k=0.9999 +x_0=200000 +y_0=1500000 +ellps=WGS84 +units=m +no_defs";
+return "+proj=tmerc +lat_0=0 +lon_0="+lon0+" +k=0.9999 +x_0=100000 +y_0=0 +datum=WGS84 +units=m +no_defs";
 
 }
 
