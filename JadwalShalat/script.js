@@ -311,10 +311,10 @@ if (window.DeviceOrientationEvent) {
 
 window.addEventListener("deviceorientation", function (event) {
 
-let newHeading
+let newHeading = null
 
-/* iOS */
-if (event.webkitCompassHeading) {
+/* iOS (Safari) */
+if (event.webkitCompassHeading !== undefined) {
 
 newHeading = event.webkitCompassHeading
 
@@ -325,21 +325,24 @@ else if (event.alpha !== null) {
 
 let screenAngle = 0
 
-if (screen.orientation && screen.orientation.angle) {
+/* beberapa browser pakai ini */
+if (screen.orientation && screen.orientation.angle !== undefined) {
 screenAngle = screen.orientation.angle
 }
 
-newHeading = 360 - event.alpha + screenAngle
+/* beberapa Android lama pakai ini */
+else if (window.orientation !== undefined) {
+screenAngle = window.orientation
+}
+
+newHeading = 360 - event.alpha - screenAngle
 
 }
 
-/* jika tidak ada sensor */
-else {
-return
-}
+/* jika sensor tidak ada */
+if (newHeading === null) return
 
-/* normalisasi 0-360 */
-
+/* normalisasi 0–360 */
 heading = (newHeading % 360 + 360) % 360
 
 document.getElementById("headingText").innerText =
