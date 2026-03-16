@@ -6,6 +6,12 @@ let timesToday = {}
 let qiblaDirection = 0
 let heading = 0
 
+let marker = null
+let selectedPoint = null
+
+let directionMarker = null
+let directionElement = null
+
 /* ================= MAP ================= */
 
 let map = new maplibregl.Map({
@@ -13,22 +19,46 @@ container: "map",
 style: {
 version: 8,
 sources: {
+
 esri: {
 type: "raster",
 tiles: [
 "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
 ],
 tileSize: 256
-}
 },
-layers: [{ id: "esri", type: "raster", source: "esri" }]
+
+osmLabels:{
+type:"raster",
+tiles:[
+"https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+],
+tileSize:256
+}
+
+},
+layers: [
+
+{
+id: "esri",
+type: "raster",
+source: "esri"
+},
+
+{
+id:"osm-labels",
+type:"raster",
+source:"osmLabels",
+paint:{
+"raster-opacity":0.6
+}
+}
+
+]
 },
 center: [110, -2],
 zoom: 5
 })
-
-let marker = null
-let selectedPoint = null
 
 map.on("click", e => {
 
@@ -69,6 +99,27 @@ map.flyTo({ center: [lon, lat], zoom: 14 })
 
 document.getElementById("locationText").innerText =
 "Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
+
+/* marker lokasi */
+
+if(marker) marker.remove()
+
+marker = new maplibregl.Marker()
+.setLngLat([lon,lat])
+.addTo(map)
+
+/* panah arah */
+
+if(directionMarker) directionMarker.remove()
+
+directionElement = document.createElement("div")
+directionElement.className="directionArrow"
+
+directionMarker = new maplibregl.Marker({
+element:directionElement
+})
+.setLngLat([lon,lat])
+.addTo(map)
 
 calculatePrayerTimes(new Date())
 
@@ -247,8 +298,6 @@ qiblaDirection = (rad2deg(Math.atan2(y, x)) + 360) % 360
 document.getElementById("qiblaAngle").innerText =
 "Arah Kiblat " + qiblaDirection.toFixed(1) + "°"
 
-/* putar garis kiblat */
-
 document.getElementById("qiblaLine")
 .setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
 
@@ -293,9 +342,13 @@ updateCompass()
 
 function updateCompass() {
 
-/* putar jarum kompas */
-
 document.getElementById("compassNeedle")
 .setAttribute("transform","rotate("+heading+" 100 100)")
+
+if(directionElement){
+
+directionElement.style.transform="rotate("+heading+"deg)"
+
+}
 
 }
