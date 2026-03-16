@@ -303,6 +303,8 @@ document.getElementById("qiblaLine")
 
 }
 
+/* ================= KOMPAS ================= */
+
 function startCompass() {
 
 if (window.DeviceOrientationEvent) {
@@ -311,23 +313,29 @@ window.addEventListener("deviceorientation", function (event) {
 
 let newHeading
 
+/* iOS */
 if (event.webkitCompassHeading) {
 
 newHeading = event.webkitCompassHeading
 
-} else if (event.alpha !== null) {
+}
+
+/* Android */
+else if (event.alpha !== null) {
 
 newHeading = 360 - event.alpha
 
-} else {
+}
+
+else {
 
 return
 
 }
 
-/* tambahkan offset koreksi */
+/* normalisasi */
 
-heading = (newHeading + compassOffset + 360) % 360
+heading = (newHeading + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
@@ -340,6 +348,20 @@ updateCompass()
 
 }
 
+/* update jarum kompas */
+
+function updateCompass() {
+
+document.getElementById("compassNeedle")
+.setAttribute("transform","rotate("+heading+" 100 100)")
+
+if(directionElement){
+
+directionElement.style.transform="rotate("+heading+"deg)"
+
+}
+
+}
 
 /* ================= HIJRI ================= */
 
