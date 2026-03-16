@@ -426,6 +426,7 @@ tbody.innerHTML=""
 
 let now=new Date()
 
+let today=now.getDate()
 let year=now.getFullYear()
 let month=now.getMonth()
 
@@ -436,6 +437,8 @@ for(let d=1; d<=days; d++){
 let date=new Date(year,month,d)
 
 calculatePrayerTimes(date)
+
+/* syuruq +15 menit */
 
 let sunrise=timesToday.sunrise.split(":")
 let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
@@ -463,8 +466,15 @@ tr.innerHTML=`
 
 `
 
+/* highlight hari ini */
+
+if(d === today){
+tr.classList.add("highlightToday")
+}
+
 tbody.appendChild(tr)
 
 }
 
 }
+
