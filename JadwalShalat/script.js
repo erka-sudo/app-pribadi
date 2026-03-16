@@ -307,6 +307,13 @@ document.getElementById("qiblaLine")
 
 function startCompass() {
 
+let compassStarted = false
+
+function startCompass() {
+
+if (compassStarted) return
+compassStarted = true
+
 if (window.DeviceOrientationEvent) {
 
 window.addEventListener("deviceorientation", function (event) {
@@ -335,6 +342,8 @@ document.getElementById("headingText").innerText =
 updateCompass()
 
 }, true)
+
+}
 
 }
 
