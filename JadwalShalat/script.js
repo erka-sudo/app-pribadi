@@ -247,6 +247,11 @@ qiblaDirection = (rad2deg(Math.atan2(y, x)) + 360) % 360
 document.getElementById("qiblaAngle").innerText =
 "Arah Kiblat " + qiblaDirection.toFixed(1) + "°"
 
+/* putar garis kiblat */
+
+document.getElementById("qiblaLine")
+.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
+
 }
 
 /* ================= KOMPAS ================= */
@@ -288,9 +293,9 @@ updateCompass()
 
 function updateCompass() {
 
-let rotate = qiblaDirection - heading
+/* putar jarum kompas */
 
-document.getElementById("northArrow")
-.setAttribute("transform", "rotate(" + rotate + " 100 100)")
+document.getElementById("compassNeedle")
+.setAttribute("transform","rotate("+heading+" 100 100)")
 
 }
