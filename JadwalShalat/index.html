@@ -25,14 +25,29 @@ Jadwal Shalat • Arah Kiblat
 
 <div class="panel">
 
+<!-- ================= BUTTON ================= -->
+
 <button onclick="getGPS()">GPS</button>
 <button onclick="useMapPoint()">Pilih dari Peta</button>
 <button onclick="openMasjidMode()">Mode Masjid</button>
 <button onclick="openMonthly()">Jadwal 1 Bulan</button>
 
+<!-- 🔥 BUTTON BARU -->
+<button onclick="calibrateCompass()" style="background:#2e7d32;color:#fff;">
+Kalibrasi Kompas
+</button>
+
+<div style="font-size:12px;margin-top:5px;color:#555;">
+Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
+</div>
+
+<!-- ================= INFO ================= -->
+
 <div id="locationText">Lokasi: -</div>
 
 <h3 id="calendarText"></h3>
+
+<!-- ================= TABLE ================= -->
 
 <table id="prayTable">
 
@@ -56,6 +71,8 @@ Jadwal Shalat • Arah Kiblat
 
 </table>
 
+<!-- ================= KIBLAT ================= -->
+
 <h3 style="text-align:center">Arah Kiblat</h3>
 
 <div id="qiblaAngle"></div>
@@ -74,6 +91,7 @@ fill="#fafafa"/>
 <text x="100" y="195" text-anchor="middle">S</text>
 <text x="20" y="105" text-anchor="middle">W</text>
 
+<!-- ✅ GARIS KIBLAT -->
 <line id="qiblaLine"
 x1="100" y1="100"
 x2="100" y2="10"
@@ -82,6 +100,7 @@ stroke-width="6"
 stroke-linecap="round"
 />
 
+<!-- ✅ JARUM KOMPAS -->
 <polygon id="compassNeedle"
 points="100,20 110,100 100,90 90,100"
 fill="red"
@@ -95,8 +114,7 @@ fill="red"
 
 </div>
 
-
-<!-- MODAL BULANAN -->
+<!-- ================= MODAL BULANAN ================= -->
 
 <div id="monthlyModal">
 
@@ -132,6 +150,7 @@ fill="red"
 
 </div>
 
+<!-- ================= MODE MASJID ================= -->
 
 <div id="masjidMode">
 
