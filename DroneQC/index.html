@@ -84,6 +84,7 @@ background:#fff2a8;
 <div class="topbar">
 
 <input type="file" id="folder" webkitdirectory multiple>
+<span id="fileCount">0 JPG</span>
 
 Threshold
 <input id="threshold" value="0.05" size="6">
@@ -248,7 +249,25 @@ return parts[parts.length-2]
 
 }
 
+document.getElementById("folder").addEventListener("change", function(){
 
+let files = this.files
+let jpgCount = 0
+
+for(let f of files){
+if(f.name.toUpperCase().endsWith(".JPG")){
+jpgCount++
+}
+}
+
+document.getElementById("fileCount").innerText = jpgCount + " JPG"
+
+})
+
+let total = files.length
+document.getElementById("fileCount").innerText =
+`${jpgCount} JPG / ${total} total`
+  
 function loadProject(){
 
 const files=document.getElementById("folder").files
