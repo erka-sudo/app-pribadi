@@ -1,146 +1,200 @@
-let lat = -2.1
-let lon = 102.7
+let lat=-2.1
+let lon=102.7
 
 let map
 let marker
-let weatherData
-let currentLayer = "wind"
+
+let windSpeed=0
+let windDir=0
+
+let mode="wind"
+
+let canvas=document.getElementById("windCanvas")
+let ctx=canvas.getContext("2d")
+
+let particles=[]
 
 /* ================= WEATHER ================= */
 
 async function loadWeather(){
 
-let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,windspeed_10m,windgusts_10m,winddirection_10m,weathercode&current_weather=true&timezone=auto&forecast_days=7`
+let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
 
 let res=await fetch(url)
+let data=await res.json()
 
-weatherData=await res.json()
+let w=data.current_weather
 
-let temp=weatherData.current_weather.temperature
-let wind=weatherData.current_weather.windspeed
+windSpeed=w.windspeed
+windDir=w.winddirection
 
-document.getElementById("temp").innerHTML=temp+"°C"
+document.getElementById("temp").innerHTML=w.temperature+"°C"
+document.getElementById("wind").innerHTML="💨 "+windSpeed+" km/h"
+document.getElementById("location").innerHTML=lat.toFixed(3)+","+lon.toFixed(3)
+document.getElementById("condition").innerHTML="Weather"
 
-document.getElementById("condition").innerHTML=
-decodeWeather(weatherData.current_weather.weathercode)
+checkDrone(windSpeed)
 
-document.getElementById("wind").innerHTML=
-"💨 Wind "+wind+" km/h"
-
-document.getElementById("location").innerHTML=
-lat.toFixed(3)+" , "+lon.toFixed(3)
-
-checkDroneSafety(temp,wind)
-
-showMode("hourly")
+initParticles()
 
 }
 
-/* ================= DRONE SAFETY ================= */
+/* ================= PARTICLES ================= */
 
-function checkDroneSafety(temp,wind){
+function initParticles(){
+
+particles=[]
+
+for(let i=0;i<200;i++){
+
+particles.push({
+x:Math.random()*canvas.width,
+y:Math.random()*canvas.height
+})
+
+}
+
+}
+
+/* ================= ANIMATION ================= */
+
+function animate(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+if(mode==="wind") drawWind()
+if(mode==="rain") drawRain()
+
+requestAnimationFrame(animate)
+
+}
+
+function drawWind(){
+
+let angle=(windDir-90)*Math.PI/180
+
+let vx=Math.cos(angle)*windSpeed*0.05
+let vy=Math.sin(angle)*windSpeed*0.05
+
+ctx.strokeStyle="rgba(0,200,255,0.7)"
+
+particles.forEach(p=>{
+
+ctx.beginPath()
+ctx.moveTo(p.x,p.y)
+ctx.lineTo(p.x+vx*2,p.y+vy*2)
+ctx.stroke()
+
+p.x+=vx
+p.y+=vy
+
+if(p.x<0||p.x>canvas.width||p.y<0||p.y>canvas.height){
+p.x=Math.random()*canvas.width
+p.y=Math.random()*canvas.height
+}
+
+})
+
+}
+
+function drawRain(){
+
+ctx.strokeStyle="rgba(0,150,255,0.7)"
+
+particles.forEach(p=>{
+
+ctx.beginPath()
+ctx.moveTo(p.x,p.y)
+ctx.lineTo(p.x,p.y+10)
+ctx.stroke()
+
+p.y+=5
+
+if(p.y>canvas.height){
+p.y=0
+p.x=Math.random()*canvas.width
+}
+
+})
+
+}
+
+/* ================= MAP ================= */
+
+function initMap(){
+
+map=new maplibregl.Map({
+container:"map",
+style:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+center:[lon,lat],
+zoom:5
+})
+
+marker=new maplibregl.Marker().setLngLat([lon,lat]).addTo(map)
+
+map.on("load",()=>{
+
+map.addSource("rain",{
+type:"raster",
+tiles:["https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}/2/1_1.png"],
+tileSize:256
+})
+
+map.addLayer({
+id:"rain",
+type:"raster",
+source:"rain",
+paint:{'raster-opacity':0.6},
+layout:{visibility:"none"}
+})
+
+resizeCanvas()
+
+})
+
+}
+
+/* ================= MODE ================= */
+
+function setMode(m){
+
+mode=m
+
+if(m==="rain"){
+map.setLayoutProperty("rain","visibility","visible")
+}else{
+map.setLayoutProperty("rain","visibility","none")
+}
+
+}
+
+/* ================= CANVAS ================= */
+
+function resizeCanvas(){
+
+let rect=document.getElementById("map").getBoundingClientRect()
+
+canvas.width=rect.width
+canvas.height=rect.height
+
+canvas.style.top=rect.top+"px"
+canvas.style.left=rect.left+"px"
+
+}
+
+/* ================= DRONE ================= */
+
+function checkDrone(wind){
 
 let el=document.getElementById("drone")
 
 if(wind>25){
-
-el.innerHTML="⚠ Drone NOT SAFE (Wind too strong)"
+el.innerHTML="⚠ NOT SAFE"
 el.className="notsafe"
-
 }else{
-
-el.innerHTML="✅ Drone SAFE to Fly"
+el.innerHTML="✅ SAFE"
 el.className="safe"
-
 }
-
-}
-
-/* ================= WEATHER CODE ================= */
-
-function decodeWeather(code){
-
-const w={
-
-0:"☀ Clear sky",
-1:"🌤 Mostly clear",
-2:"⛅ Partly cloudy",
-3:"☁ Cloudy",
-
-45:"🌫 Fog",
-
-51:"🌦 Drizzle",
-53:"🌦 Drizzle",
-
-61:"🌧 Rain",
-63:"🌧 Rain",
-65:"🌧 Heavy rain",
-
-95:"⛈ Thunderstorm"
-
-}
-
-return w[code] || "Weather"
-
-}
-
-/* ================= FORECAST ================= */
-
-function showMode(mode){
-
-let container=document.getElementById("forecast")
-
-container.innerHTML=""
-
-let now=new Date()
-
-let startIndex=weatherData.hourly.time.findIndex(t=>{
-return new Date(t)>=now
-})
-
-let step=1
-
-if(mode==="3hour") step=3
-if(mode==="6hour") step=6
-
-for(let i=startIndex;i<startIndex+24;i+=step){
-
-createCard(
-weatherData.hourly.time[i],
-weatherData.hourly.temperature_2m[i],
-weatherData.hourly.precipitation[i],
-weatherData.hourly.windspeed_10m[i],
-weatherData.hourly.windgusts_10m[i],
-weatherData.hourly.cloudcover[i]
-)
-
-}
-
-}
-
-/* ================= CARD ================= */
-
-function createCard(time,temp,rain,wind,gust,cloud){
-
-let container=document.getElementById("forecast")
-
-let card=document.createElement("div")
-
-card.className="col-md-2 forecast-card"
-
-card.innerHTML=`
-
-<h6>${time.slice(11,16)}</h6>
-
-<div>🌡 ${temp}°C</div>
-<div>🌧 ${rain} mm</div>
-<div>💨 ${wind} km/h</div>
-<div>⚡ gust ${gust}</div>
-<div>☁ ${cloud}%</div>
-
-`
-
-container.appendChild(card)
 
 }
 
@@ -162,128 +216,10 @@ loadWeather()
 
 }
 
-/* ================= PICK LOCATION ================= */
-
-function enablePickLocation(){
-
-alert("Klik lokasi pada peta")
-
-map.once("click",(e)=>{
-
-lat=e.lngLat.lat
-lon=e.lngLat.lng
-
-marker.setLngLat([lon,lat])
-
-loadWeather()
-
-})
-
-}
-
-/* ================= MAP ================= */
-
-function initMap(){
-
-map=new maplibregl.Map({
-
-container:"map",
-
-style:"https://api.maptiler.com/maps/terrain/style.json?key=get_your_own_key",
-
-center:[lon,lat],
-
-zoom:5
-
-})
-
-marker=new maplibregl.Marker()
-.setLngLat([lon,lat])
-.addTo(map)
-
-map.on("load",()=>{
-
-/* WIND LAYER */
-
-map.addSource("wind",{
-
-type:"raster",
-
-tiles:[
-"https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=439d4b804bc8187953eb36d2a8c26a02"
-],
-
-tileSize:256
-
-})
-
-map.addLayer({
-
-id:"wind",
-
-type:"raster",
-
-source:"wind",
-
-paint:{'raster-opacity':0.8}
-
-})
-
-/* RAIN LAYER */
-
-map.addSource("rain",{
-
-type:"raster",
-
-tiles:[
-"https://tilecache.rainviewer.com/v2/radar/latest/256/{z}/{x}/{y}/2/1_1.png"
-],
-
-tileSize:256
-
-})
-
-map.addLayer({
-
-id:"rain",
-
-type:"raster",
-
-source:"rain",
-
-paint:{'raster-opacity':0.7},
-
-layout:{visibility:"none"}
-
-})
-
-})
-
-}
-
-/* ================= LAYER SWITCH ================= */
-
-function setLayer(type){
-
-currentLayer=type
-
-if(type==="wind"){
-
-map.setLayoutProperty("wind","visibility","visible")
-map.setLayoutProperty("rain","visibility","none")
-
-}
-
-if(type==="rain"){
-
-map.setLayoutProperty("wind","visibility","none")
-map.setLayoutProperty("rain","visibility","visible")
-
-}
-
-}
-
 /* ================= INIT ================= */
 
-loadWeather()
 initMap()
+loadWeather()
+animate()
+
+window.addEventListener("resize",resizeCanvas)
