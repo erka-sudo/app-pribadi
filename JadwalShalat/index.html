@@ -25,40 +25,22 @@ Jadwal Shalat • Arah Kiblat
 
 <div class="panel">
 
-<!-- ================= BUTTON ================= -->
-
 <button onclick="getGPS()">GPS</button>
 <button onclick="useMapPoint()">Pilih dari Peta</button>
 <button onclick="openMasjidMode()">Mode Masjid</button>
 <button onclick="openMonthly()">Jadwal 1 Bulan</button>
 
-<button onclick="calibrateCompass()" style="background:#2e7d32;color:#fff;">
+<button onclick="calibrateCompass()" style="background:#2e7d32;">
 Kalibrasi Kompas
 </button>
 
-<div style="font-size:12px;margin-top:5px;color:#555;">
-Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
-</div>
-
-<!-- ================= INFO ================= -->
-
 <div id="locationText">Lokasi: -</div>
 
-<h3 id="calendarText"></h3>
-
-<!-- ================= TABLE ================= -->
-
 <table id="prayTable">
-
 <tr>
-<th>Subuh</th>
-<th>Syuruq</th>
-<th>Dzuhur</th>
-<th>Ashar</th>
-<th>Maghrib</th>
-<th>Isya</th>
+<th>Subuh</th><th>Syuruq</th><th>Dzuhur</th>
+<th>Ashar</th><th>Maghrib</th><th>Isya</th>
 </tr>
-
 <tr>
 <td id="fajr"></td>
 <td id="sunrise"></td>
@@ -67,90 +49,35 @@ Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
 <td id="maghrib"></td>
 <td id="isha"></td>
 </tr>
-
 </table>
 
-<!-- ================= KIBLAT ================= -->
-
 <h3 style="text-align:center">Arah Kiblat</h3>
-
 <div id="qiblaAngle"></div>
 
 <div id="compassPro">
-
 <div class="compass-ring"></div>
 
-<!-- arah mata angin REAL -->
 <div class="dir north">N</div>
 <div class="dir east">E</div>
 <div class="dir south">S</div>
 <div class="dir west">W</div>
 
-<!-- jarum -->
 <div id="needle"></div>
-
-<!-- panah kiblat -->
 <div id="qiblaArrow"></div>
-
 </div>
 
 <div id="headingText"></div>
 
 </div>
 
-<!-- ================= MODAL BULANAN ================= -->
-
-<div id="monthlyModal">
-
-<div class="modalContent">
-
-<h2>Jadwal Shalat 1 Bulan</h2>
-
-<div class="tableWrap">
-<table id="monthlyTable">
-
-<thead>
-<tr>
-<th>Hari</th>
-<th>Masehi</th>
-<th>Hijriyah</th>
-<th>Subuh</th>
-<th>Syuruq</th>
-<th>Dzuhur</th>
-<th>Ashar</th>
-<th>Maghrib</th>
-<th>Isya</th>
-</tr>
-</thead>
-
-<tbody></tbody>
-
-</table>
-</div>
-
-<button onclick="closeMonthly()">Tutup</button>
-
-</div>
-
-</div>
-
-<!-- ================= MODE MASJID ================= -->
-
+<!-- MASJID MODE -->
 <div id="masjidMode">
-
 <div id="masjidClock"></div>
-
 <table id="masjidTable">
-
 <tr>
-<th>Subuh</th>
-<th>Syuruq</th>
-<th>Dzuhur</th>
-<th>Ashar</th>
-<th>Maghrib</th>
-<th>Isya</th>
+<th>Subuh</th><th>Syuruq</th><th>Dzuhur</th>
+<th>Ashar</th><th>Maghrib</th><th>Isya</th>
 </tr>
-
 <tr>
 <td id="mfajr"></td>
 <td id="msunrise"></td>
@@ -159,11 +86,28 @@ Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
 <td id="mmaghrib"></td>
 <td id="misha"></td>
 </tr>
-
 </table>
-
 <button onclick="closeMasjidMode()">Kembali</button>
+</div>
 
+<!-- BULANAN -->
+<div id="monthlyModal">
+<div class="modalContent">
+<h2>Jadwal 1 Bulan</h2>
+<div class="tableWrap">
+<table id="monthlyTable">
+<thead>
+<tr>
+<th>Hari</th><th>Masehi</th><th>Hijriyah</th>
+<th>Subuh</th><th>Syuruq</th><th>Dzuhur</th>
+<th>Ashar</th><th>Maghrib</th><th>Isya</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+<button onclick="closeMonthly()">Tutup</button>
+</div>
 </div>
 
 <script src="script.js"></script>
