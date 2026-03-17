@@ -78,15 +78,25 @@ return true
 
 /* ================= UI ================= */
 
-function openMasjidMode(){
-
-if (!checkLocation()) return
-
-document.body.classList.add("body-lock")
+function openMasjidMode() {
 
 document.getElementById("masjidMode").style.display="block"
-calculatePrayerTimes(new Date())
 
+/* kalau belum ada lokasi */
+if (lat === 0 && lon === 0) {
+
+alert("Lokasi belum ditentukan.\nGunakan GPS atau pilih dari peta.")
+
+let clock = document.getElementById("masjidClock")
+if(clock){
+clock.innerText = "LOKASI BELUM DISET"
+
+/* tetap tampil tapi kosong */
+return
+}
+
+/* kalau sudah ada lokasi */
+calculatePrayerTimes(new Date())
 }
 
 function closeMasjidMode(){
