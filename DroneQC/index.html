@@ -14,15 +14,7 @@
 body{font-family:Arial;margin:0;background:#f2f2f2;}
 
 .topbar{
-background:white;
-padding:10px;
-border-bottom:1px solid #ccc;
-
-display:flex;
-align-items:center;
-gap:10px;
-flex-wrap:nowrap;
-overflow-x:auto;
+gap:6px; /* sebelumnya 10px → terlalu jauh */
 }
 
 .info{
@@ -106,7 +98,7 @@ background:#fff2a8;
 
 <input type="file" id="folder" webkitdirectory multiple>
 
-<span class="info"><span id="totalFile">0 files</span> | <span id="fileCount">0 JPG</span></span>
+<span class="info">| <span id="fileCount">0 JPG</span></span>
 
 <span>Threshold</span>
 <input id="threshold" value="0.05" size="6">
@@ -281,7 +273,6 @@ jpgCount++
 }
 }
 
-document.getElementById("totalFile").innerText = files.length + " files"
 document.getElementById("fileCount").innerText = jpgCount + " JPG"
 
 })
