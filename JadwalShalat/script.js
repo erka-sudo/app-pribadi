@@ -315,20 +315,26 @@ function updateCompass(){
 /* smoothing */
 smoothHeading = smoothHeading * 0.8 + heading * 0.2
 
+/* 🔥 KOREKSI 90 DERJAT */
+let headingCSS = smoothHeading - 90
+
 /* jarum utara */
 let needle = document.getElementById("needle")
 if (needle) {
 needle.style.transform =
-"translateX(-50%) rotate(" + smoothHeading + "deg)"
+"translateX(-50%) rotate(" + headingCSS + "deg)"
 }
 
 /* kiblat relatif */
 let relativeQibla = (qiblaDirection - smoothHeading + 360) % 360
 
+/* 🔥 KOREKSI 90 DERJAT */
+let qiblaCSS = relativeQibla - 90
+
 let qArrow = document.getElementById("qiblaArrow")
 if (qArrow) {
 qArrow.style.transform =
-"translateX(-50%) rotate(" + relativeQibla + "deg)"
+"translateX(-50%) rotate(" + qiblaCSS + "deg)"
 }
 
 /* marker map */
