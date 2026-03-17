@@ -78,13 +78,21 @@ return true
 
 /* ================= UI ================= */
 
-function openMasjidMode() {
+function openMasjidMode(){
+
 if (!checkLocation()) return
+
+document.body.classList.add("body-lock")
+
 document.getElementById("masjidMode").style.display="block"
 calculatePrayerTimes(new Date())
+
 }
 
-function closeMasjidMode() {
+function closeMasjidMode(){
+
+document.body.classList.remove("body-lock")
+
 document.getElementById("masjidMode").style.display="none"
 }
 
@@ -355,12 +363,20 @@ day:'numeric',month:'long',year:'numeric'
 /* ================= BULANAN ================= */
 
 function openMonthly(){
+
 if (!checkLocation()) return
+
+document.body.classList.add("body-lock")
+
 document.getElementById("monthlyModal").style.display="block"
 generateMonthly()
+
 }
 
 function closeMonthly(){
+
+document.body.classList.remove("body-lock")
+
 document.getElementById("monthlyModal").style.display="none"
 }
 
