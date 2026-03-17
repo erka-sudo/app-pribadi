@@ -67,18 +67,32 @@ marker = new maplibregl.Marker()
 
 })
 
+/* ================= VALIDASI LOKASI ================= */
+
+function checkLocation() {
+if (lat === 0 && lon === 0) {
+alert("Silakan tentukan lokasi terlebih dahulu (GPS atau pilih dari peta)")
+return false
+}
+return true
+}
+
 /* ================= FIX TAMBAHAN ================= */
 
-/* ✅ fungsi yang sebelumnya tidak ada */
 function openMasjidMode() {
+
+if (!checkLocation()) return
+
 document.getElementById("masjidMode").style.display="block"
+
+/* pastikan data ada */
+calculatePrayerTimes(new Date())
 }
 
 function closeMasjidMode() {
 document.getElementById("masjidMode").style.display="none"
 }
 
-/* ✅ perbaikan UX */
 function useMapPoint() {
 if (!selectedPoint) {
 alert("Klik peta dulu untuk memilih lokasi")
@@ -207,7 +221,7 @@ if (document.getElementById(id))
 document.getElementById(id).innerText = timesToday[id]
 }
 
-/* mode masjid (DITAMBAH PROTEKSI TANPA MENGHAPUS) */
+/* mode masjid */
 if(document.getElementById("mfajr")){
 document.getElementById("mfajr").innerText = timesToday.fajr
 document.getElementById("msunrise").innerText = timesToday.sunrise
@@ -367,8 +381,12 @@ return new Intl.DateTimeFormat(
 /* ================= BULANAN ================= */
 
 function openMonthly(){
+
+if (!checkLocation()) return
+
 document.getElementById("monthlyModal").style.display="block"
 generateMonthly()
+
 }
 
 function closeMonthly(){
@@ -376,6 +394,8 @@ document.getElementById("monthlyModal").style.display="none"
 }
 
 function generateMonthly(){
+
+console.log("Generate monthly:", lat, lon)
 
 let tbody=document.querySelector("#monthlyTable tbody")
 tbody.innerHTML=""
