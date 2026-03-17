@@ -70,9 +70,14 @@ let password = "drone123";  // ganti password di sini
 
 let input = prompt("Enter access password");
 
-if(input !== password){
+/* jika cancel, kosong, atau salah password */
+if(input === null || input.trim() === "" || input !== password){
 
-document.write("<h2 style='text-align:center;margin-top:100px'>Access Denied</h2>");
+alert("Access denied");
+
+/* hentikan loading halaman */
+document.documentElement.innerHTML = "";
+
 throw new Error("Access denied");
 
 }
