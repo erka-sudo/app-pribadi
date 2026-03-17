@@ -1,9 +1,10 @@
-let lat=-2.1
-let lon=102.7
+let lat = -2.1
+let lon = 102.7
 
 let map
 let marker
 let weatherData
+let currentLayer = "wind"
 
 /* ================= WEATHER ================= */
 
@@ -132,13 +133,9 @@ card.innerHTML=`
 <h6>${time.slice(11,16)}</h6>
 
 <div>🌡 ${temp}°C</div>
-
 <div>🌧 ${rain} mm</div>
-
 <div>💨 ${wind} km/h</div>
-
 <div>⚡ gust ${gust}</div>
-
 <div>☁ ${cloud}%</div>
 
 `
@@ -192,11 +189,11 @@ map=new maplibregl.Map({
 
 container:"map",
 
-style:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+style:"https://api.maptiler.com/maps/terrain/style.json?key=get_your_own_key",
 
 center:[lon,lat],
 
-zoom:6
+zoom:5
 
 })
 
@@ -206,7 +203,35 @@ marker=new maplibregl.Marker()
 
 map.on("load",()=>{
 
-map.addSource("radar",{
+/* WIND LAYER */
+
+map.addSource("wind",{
+
+type:"raster",
+
+tiles:[
+"https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=439d4b804bc8187953eb36d2a8c26a02"
+],
+
+tileSize:256
+
+})
+
+map.addLayer({
+
+id:"wind",
+
+type:"raster",
+
+source:"wind",
+
+paint:{'raster-opacity':0.8}
+
+})
+
+/* RAIN LAYER */
+
+map.addSource("rain",{
 
 type:"raster",
 
@@ -220,17 +245,41 @@ tileSize:256
 
 map.addLayer({
 
-id:"radar",
+id:"rain",
 
 type:"raster",
 
-source:"radar",
+source:"rain",
 
-paint:{'raster-opacity':0.65}
+paint:{'raster-opacity':0.7},
+
+layout:{visibility:"none"}
 
 })
 
 })
+
+}
+
+/* ================= LAYER SWITCH ================= */
+
+function setLayer(type){
+
+currentLayer=type
+
+if(type==="wind"){
+
+map.setLayoutProperty("wind","visibility","visible")
+map.setLayoutProperty("rain","visibility","none")
+
+}
+
+if(type==="rain"){
+
+map.setLayoutProperty("wind","visibility","none")
+map.setLayoutProperty("rain","visibility","visible")
+
+}
 
 }
 
