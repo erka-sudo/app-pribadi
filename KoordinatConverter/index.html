@@ -61,113 +61,80 @@ button:hover{background:#1a5fd0;}
 <script>
 
 // =====================
-// SAMPLE CSV DOWNLOAD
+// SAMPLE CSV
 // =====================
 function updateSampleLink(){
+let from=document.getElementById("from").value;
+let link=document.getElementById("sampleLink");
 
-let from = document.getElementById("from").value;
-let link = document.getElementById("sampleLink");
-
-if(from==="geo"){
-link.innerHTML = '<a href="#" onclick="downloadSample(\'geo\')">Download contoh CSV Geodetik</a>';
-}
-else if(from==="utm"){
-link.innerHTML = '<a href="#" onclick="downloadSample(\'utm\')">Download contoh CSV UTM</a>';
-}
-else if(from==="tm3"){
-link.innerHTML = '<a href="#" onclick="downloadSample(\'tm3\')">Download contoh CSV TM3</a>';
-}
-
+if(from==="geo") link.innerHTML='<a href="#" onclick="downloadSample(\'geo\')">Download contoh CSV Geodetik</a>';
+if(from==="utm") link.innerHTML='<a href="#" onclick="downloadSample(\'utm\')">Download contoh CSV UTM</a>';
+if(from==="tm3") link.innerHTML='<a href="#" onclick="downloadSample(\'tm3\')">Download contoh CSV TM3</a>';
 }
 
 function downloadSample(type){
+let content="";
+if(type==="geo") content="lat,lon\n-2.070877,102.772954";
+if(type==="utm") content="x,y\n222745,9829000";
+if(type==="tm3") content="x,y\n120000,1500000";
 
-let content = "";
-
-if(type==="geo"){
-content = "lat,lon\n-2.070877,102.772954\n-2.071000,102.773200";
-}
-if(type==="utm"){
-content = "x,y\n222745,9829000\n223000,9830000";
-}
-if(type==="tm3"){
-content = "x,y\n120000,1500000\n130000,1502000";
-}
-
-let blob = new Blob([content]);
-let a = document.createElement("a");
-a.href = URL.createObjectURL(blob);
-a.download = "sample_"+type+".csv";
+let blob=new Blob([content]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="sample_"+type+".csv";
 a.click();
-
 }
 
 // =====================
-// PARSE ZONE
+// ZONE PARSER
 // =====================
 function parseZoneInput(){
+let z=document.getElementById("zone").value.trim();
 
-let z = document.getElementById("zone").value.trim();
-
-if(!z){
-return {error:"Zona kosong"};
-}
+if(!z) return {error:"Zona kosong"};
 
 if(z.includes(".")){
-let parts = z.split(".");
-let base = parseInt(parts[0]);
-let sub = parts[1];
-
-if((sub==="1" || sub==="2") && !isNaN(base)){
-return {type:"tm3", zone:z};
+let p=z.split(".");
+if((p[1]==="1"||p[1]==="2")) return {type:"tm3",zone:z};
+return {error:"Format TM3 salah"};
 }
 
-return {error:"Format TM3 salah (harus .1 atau .2)"};
-}
-
-let num = parseInt(z);
-
-if(!isNaN(num)){
-return {type:"utm", zone:num};
-}
+let num=parseInt(z);
+if(!isNaN(num)) return {type:"utm",zone:num};
 
 return {error:"Zona tidak valid"};
-
 }
 
 // =====================
 // UTM
 // =====================
-function buildUTMproj(zone, lat){
-let south = lat < 0 ? " +south" : "";
+function buildUTMproj(zone,lat){
+let south=lat<0?" +south":"";
 return "+proj=utm +zone="+zone+south+" +datum=WGS84 +units=m +no_defs";
 }
 
 function autoUTMzone(lon){
-return Math.floor((lon + 180)/6) + 1;
+return Math.floor((lon+180)/6)+1;
 }
 
 // =====================
 // TM3
 // =====================
-function parseTM3zone(zoneStr){
-let parts = zoneStr.split(".");
-let zone = parseInt(parts[0]);
-let sub = parts[1];
+function parseTM3zone(z){
+let p=z.split(".");
+let base=parseInt(p[0]);
+let cmUTM=base*6-183;
 
-let cm_utm = zone * 6 - 183;
-
-if(sub==="1") return cm_utm - 1.5;
-if(sub==="2") return cm_utm + 1.5;
+if(p[1]==="1") return cmUTM-1.5;
+if(p[1]==="2") return cmUTM+1.5;
 
 return null;
 }
 
 function getTM3zone(lon){
-let z = autoUTMzone(lon);
-let cm = z*6 - 183;
-let sub = lon < cm ? ".1" : ".2";
-return z + sub;
+let z=autoUTMzone(lon);
+let cm=z*6-183;
+return lon<cm?z+".1":z+".2";
 }
 
 function buildTM3proj(cm){
@@ -176,27 +143,22 @@ return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 }
 
 // =====================
-// QC
+// HARD VALIDATION
 // =====================
-function validateGeo(lat, lon){
-let msg="";
-if(lat<-90||lat>90) msg+="Lat error | ";
-if(lon<-180||lon>180) msg+="Lon error | ";
-return msg;
+function hardValidate(a,b,from){
+if(from==="geo"){
+if(a<-90||a>90) return "ERROR: lat salah";
+if(b<-180||b>180) return "ERROR: lon salah";
 }
-
-function validateUTM(e,n){
-let msg="";
-if(e<100000||e>900000) msg+="Easting error | ";
-if(n<0||n>10000000) msg+="Northing error | ";
-return msg;
+if(from==="utm"){
+if(a<100000||a>900000) return "ERROR: easting UTM";
+if(b<8000000||b>10000000) return "ERROR: northing UTM";
 }
-
-function validateTM3(e,n){
-let msg="";
-if(e<0||e>400000) msg+="Easting TM3 error | ";
-if(n<1000000||n>2000000) msg+="Northing TM3 error | ";
-return msg;
+if(from==="tm3"){
+if(a<0||a>400000) return "ERROR: easting TM3";
+if(b<1000000||b>2000000) return "ERROR: northing TM3";
+}
+return null;
 }
 
 // =====================
@@ -204,31 +166,27 @@ return msg;
 // =====================
 function convertPoint(a,b,from,to){
 
-let warn="";
-let z = parseZoneInput();
-
+let z=parseZoneInput();
 if(z.error && from!=="geo") return z.error;
 
-if(from==="geo"){
-warn+=validateGeo(a,b);
-}
+let hard=hardValidate(a,b,from);
+if(hard) return hard;
 
 // GEO → UTM
-if(from==="geo" && to==="utm"){
+if(from==="geo"&&to==="utm"){
 let zone=autoUTMzone(b);
 let p=proj4("EPSG:4326",buildUTMproj(zone,a),[b,a]);
-warn+=validateUTM(p[0],p[1]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+") | "+warn;
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
 }
 
 // UTM → GEO
-if(from==="utm" && to==="geo"){
+if(from==="utm"&&to==="geo"){
 let p=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
 return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
 // GEO → TM3
-if(from==="geo" && to==="tm3"){
+if(from==="geo"&&to==="tm3"){
 let zone=getTM3zone(b);
 let cm=parseTM3zone(zone);
 let p=proj4("EPSG:4326",buildTM3proj(cm),[b,a]);
@@ -236,10 +194,40 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 }
 
 // TM3 → GEO
-if(from==="tm3" && to==="geo"){
+if(from==="tm3"&&to==="geo"){
 let cm=parseTM3zone(z.zone);
 let p=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
 return p[1].toFixed(8)+","+p[0].toFixed(8);
+}
+
+// 🔥 TM3 → UTM (FIX)
+if(from==="tm3"&&to==="utm"){
+let cm=parseTM3zone(z.zone);
+let geo=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
+
+let lon=geo[0];
+let lat=geo[1];
+
+let utmZ=autoUTMzone(lon);
+
+let p=proj4("EPSG:4326",buildUTMproj(utmZ,lat),[lon,lat]);
+
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZ+")";
+}
+
+// 🔥 UTM → TM3
+if(from==="utm"&&to==="tm3"){
+let geo=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
+
+let lon=geo[0];
+let lat=geo[1];
+
+let tm3z=getTM3zone(lon);
+let cm=parseTM3zone(tm3z);
+
+let p=proj4("EPSG:4326",buildTM3proj(cm),[lon,lat]);
+
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3z+")";
 }
 
 return "conversion not defined";
@@ -249,13 +237,11 @@ return "conversion not defined";
 // MANUAL
 // =====================
 function convertManual(){
-
 let lines=document.getElementById("manual").value.trim().split("\n");
 let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out="";
-
 lines.forEach(l=>{
 let p=l.split(",");
 let a=parseFloat(p[0]);
@@ -265,14 +251,12 @@ out+=l+" → "+convertPoint(a,b,from,to)+"\n";
 });
 
 document.getElementById("result").innerText=out;
-
 }
 
 // =====================
 // CSV
 // =====================
 function convertCSV(){
-
 let file=document.getElementById("csv").files[0];
 if(!file){ alert("Pilih file CSV"); return; }
 
@@ -286,22 +270,16 @@ let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out=[];
-
 data.forEach(r=>{
-
 let v1=parseFloat(r.lat||r.y||r.x);
 let v2=parseFloat(r.lon||r.x||r.y);
-
 if(isNaN(v1)||isNaN(v2)) return;
 
 let conv=convertPoint(v1,v2,from,to);
-
 out.push(v1+","+v2+" → "+conv);
-
 });
 
 document.getElementById("result").innerText=out.join("\n");
-
 downloadCSV(out);
 
 }
@@ -320,7 +298,6 @@ a.download="converted.csv";
 a.click();
 }
 
-// init
 updateSampleLink();
 
 </script>
