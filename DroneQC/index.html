@@ -25,22 +25,18 @@ flex-wrap:nowrap;
 overflow-x:auto;
 }
 
-.topbar-group{
-display:flex;
-align-items:center;
-gap:8px;
-}
-
-.topbar-right{
-margin-left:auto;
-display:flex;
-align-items:center;
-gap:10px;
-}
-
 .info{
 font-size:13px;
 color:#333;
+font-weight:bold;
+white-space:nowrap;
+display:inline-flex;
+align-items:center;
+gap:4px;
+}
+
+#fileCount{
+color:#0a8f2a;
 font-weight:bold;
 }
 
@@ -99,15 +95,6 @@ padding:4px;
 background:#fff2a8;
 }
 
-#fileCount{
-font-weight:bold;
-color:#0a8f2a;
-}
-
-#totalFile{
-color:#555;
-}
-  
 </style>
 
 </head>
@@ -119,10 +106,7 @@ color:#555;
 
 <input type="file" id="folder" webkitdirectory multiple>
 
-<span class="info">
-<span id="totalFile">0 files</span> | 
-<span id="fileCount">0 JPG</span>
-</span>
+<span class="info"><span id="totalFile">0 files</span> | <span id="fileCount">0 JPG</span></span>
 
 <span>Threshold</span>
 <input id="threshold" value="0.05" size="6">
@@ -134,8 +118,6 @@ color:#555;
 
 <span style="margin-left:auto;">Point Size</span>
 <input type="range" id="pointSize" min="4" max="16" value="6">
-
-</div>
 
 </div>
 
@@ -282,12 +264,12 @@ document.getElementById("threshold").addEventListener("input",drawFlights)
 
 
 function getFlightName(path){
-
 let parts=path.split("/")
 return parts[parts.length-2]
-
 }
 
+
+// ✅ FIX TOTAL + JPG
 document.getElementById("folder").addEventListener("change", function(){
 
 let files = this.files
@@ -299,11 +281,11 @@ jpgCount++
 }
 }
 
-// tampilkan: 11923 files | 11683 JPG
 document.getElementById("totalFile").innerText = files.length + " files"
 document.getElementById("fileCount").innerText = jpgCount + " JPG"
 
 })
+
 
 function loadProject(){
 
@@ -344,11 +326,9 @@ readMRK()
 function sortJPG(list){
 
 return list.sort((a,b)=>{
-
 let na=parseInt(a.split("_")[2])
 let nb=parseInt(b.split("_")[2])
 return na-nb
-
 })
 
 }
@@ -363,9 +343,7 @@ flights[f].jpgs=sortJPG(flights[f].jpgs)
 let reader=new FileReader()
 
 reader.onload=function(e){
-
 parseMRK(e.target.result,f)
-
 }
 
 reader.readAsText(flights[f].mrk)
@@ -380,7 +358,6 @@ setTimeout(buildFlightList,500)
 function parseMRK(text,flight){
 
 let lines=text.split("\n")
-
 let points=[]
 
 for(let line of lines){
@@ -393,14 +370,12 @@ let acc=line.match(/(\d+\.\d+),\s*(\d+\.\d+),\s*(\d+\.\d+)/)
 if(!lat) continue
 
 points.push({
-
 lat:parseFloat(lat[1]),
 lon:parseFloat(lon[1]),
 alt:parseFloat(alt[1]),
 ax:parseFloat(acc[1]),
 ay:parseFloat(acc[2]),
 az:parseFloat(acc[3])
-
 })
 
 }
@@ -420,6 +395,7 @@ for(let f in flights){
 let el=document.createElement("div")
 
 el.className="flight"
+
 let jumlahFoto = flights[f].jpgs.length
 el.innerText = `${f} (${jumlahFoto})`
 
@@ -466,9 +442,7 @@ let jpgs=flights[f].jpgs
 for(let i=0;i<flights[f].points.length;i++){
 
 let p=flights[f].points[i]
-
 let acc=Math.max(p.ax,p.ay,p.az)
-
 let fileName=jpgs[i] || ""
 
 features.push({
@@ -500,9 +474,7 @@ rowById[id]=tr
 pointById[id]=p
 
 tr.addEventListener("click",function(){
-
 highlightPoint(parseInt(this.dataset.id))
-
 })
 
 id++
@@ -556,13 +528,9 @@ function zoomToFlights(){
 let bounds=new maplibregl.LngLatBounds()
 
 for(let f of selectedFlights){
-
 for(let p of flights[f].points){
-
 bounds.extend([p.lon,p.lat])
-
 }
-
 }
 
 if(!bounds.isEmpty()){
