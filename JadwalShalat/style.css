@@ -1,232 +1,78 @@
-/* ================= GLOBAL ================= */
+body{margin:0;font-family:Segoe UI,Arial;background:#f5f7fb;}
+.header{background:#0b5ed7;color:white;padding:14px;text-align:center;}
+#map{height:45vh;}
+.panel{background:white;padding:14px;}
 
-body{
-margin:0;
-font-family:Segoe UI,Arial;
-background:#f5f7fb;
-}
-
-.header{
-background:#0b5ed7;
-color:white;
-padding:14px;
-text-align:center;
-font-size:18px;
-}
-
-#map{
-height:45vh;
-}
-
-.panel{
-background:white;
-padding:14px;
-}
-
-/* ================= TABLE ================= */
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
-}
-
-th{
-background:#eef3ff;
-padding:8px;
-}
-
-td{
-padding:8px;
-text-align:center;
-border-bottom:1px solid #eee;
-}
-
-.activePrayer{
-background:#ffd54f;
-font-weight:bold;
-}
-
-/* ================= BUTTON ================= */
+table{width:100%;border-collapse:collapse;margin-top:10px;}
+th{background:#eef3ff;padding:8px;}
+td{padding:8px;text-align:center;border-bottom:1px solid #eee;}
+.activePrayer{background:#ffd54f;font-weight:bold;}
 
 button{
-padding:8px 10px;
-margin:3px;
-border:none;
-background:#0b5ed7;
-color:white;
-border-radius:6px;
-cursor:pointer;
+padding:8px;margin:3px;border:none;
+background:#0b5ed7;color:white;border-radius:6px;
 }
 
-button:hover{
-background:#0949a8;
-}
-
-/* ================= 🔥 KOMPAS PRESISI ================= */
-
+/* KOMPAS */
 #compassPro{
 position:relative;
-width:260px;
-height:260px;
-margin:20px auto;
-border-radius:50%;
-background:#fff;
-border:6px solid #333;
-box-shadow:0 6px 15px rgba(0,0,0,0.25);
+width:260px;height:260px;
+margin:20px auto;border-radius:50%;
+border:6px solid #333;background:#fff;
 }
 
-/* ring derajat (tick marks) */
 .compass-ring{
-position:absolute;
-width:100%;
-height:100%;
+position:absolute;width:100%;height:100%;
+background:conic-gradient(#ccc 0deg 1deg,transparent 1deg 10deg);
 border-radius:50%;
-background:
-conic-gradient(
-#ccc 0deg 1deg,
-transparent 1deg 10deg
-);
 }
 
-/* arah mata angin REAL */
-.dir{
-position:absolute;
-font-weight:bold;
-font-size:18px;
-color:#000;
-}
+.dir{position:absolute;font-weight:bold;}
+.north{top:8px;left:50%;transform:translateX(-50%);}
+.south{bottom:8px;left:50%;transform:translateX(-50%);}
+.east{right:8px;top:50%;transform:translateY(-50%);}
+.west{left:8px;top:50%;transform:translateY(-50%);}
 
-/* posisi akurat */
-.north{ top:8px; left:50%; transform:translateX(-50%); }
-.south{ bottom:8px; left:50%; transform:translateX(-50%); }
-.east{ right:8px; top:50%; transform:translateY(-50%); }
-.west{ left:8px; top:50%; transform:translateY(-50%); }
-
-/* jarum utara */
 #needle{
-position:absolute;
-width:4px;
-height:110px;
-background:red;
-top:20px;
-left:50%;
+position:absolute;width:4px;height:110px;
+background:red;top:20px;left:50%;
 transform-origin:50% 85%;
-border-radius:3px;
-box-shadow:0 0 8px rgba(255,0,0,0.6);
-z-index:5;
 }
 
-/* panah kiblat */
 #qiblaArrow{
-position:absolute;
-width:6px;
-height:120px;
-background:green;
-top:15px;
-left:50%;
+position:absolute;width:6px;height:120px;
+background:green;top:15px;left:50%;
 transform-origin:50% 90%;
-border-radius:3px;
-box-shadow:0 0 8px rgba(0,128,0,0.6);
-z-index:6;
 }
 
-/* titik tengah */
 #compassPro::after{
-content:"";
-position:absolute;
-width:14px;
-height:14px;
-background:#000;
-border-radius:50%;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-z-index:10;
+content:"";position:absolute;width:12px;height:12px;
+background:#000;border-radius:50%;
+top:50%;left:50%;transform:translate(-50%,-50%);
 }
-
-/* ================= MAP ARROW ================= */
 
 .directionArrow{
-
-width:0;
-height:0;
-
 border-left:10px solid transparent;
 border-right:10px solid transparent;
 border-bottom:20px solid red;
-
-transform-origin:50% 70%;
-
 }
 
-/* ================= MASJID MODE ================= */
-
+/* MASJID */
 #masjidMode{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:black;
-color:white;
-text-align:center;
+display:none;position:fixed;width:100%;height:100%;
+background:black;color:white;text-align:center;
 padding-top:40px;
-z-index:999;
 }
 
-#masjidClock{
-font-size:120px;
-font-weight:bold;
-margin-bottom:40px;
-}
+#masjidClock{font-size:120px;}
 
-#masjidTable{
-font-size:40px;
-width:80%;
-margin:auto;
-}
-
-/* ================= MODAL ================= */
-
+/* MODAL */
 #monthlyModal{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
+display:none;position:fixed;width:100%;height:100%;
 background:rgba(0,0,0,0.6);
-z-index:9999;
-overflow:auto;
 }
 
 .modalContent{
-background:white;
+background:white;margin:40px auto;padding:20px;
 max-width:900px;
-margin:40px auto;
-padding:20px;
-border-radius:10px;
-}
-
-.tableWrap{
-overflow:auto;
-}
-
-#monthlyTable th{
-background:#0b5ed7;
-color:white;
-}
-
-#monthlyTable td{
-padding:6px;
-font-size:14px;
-}
-
-/* highlight hari ini */
-
-.highlightToday{
-background:#ffe082;
-font-weight:bold;
 }
