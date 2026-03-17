@@ -72,11 +72,11 @@ background:rgba(0,0,0,0.6);
 }
 
 /* container scroll */
-.modalScroll {
+.modalScroll,
+.masjidScroll {
 height: 100%;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
-padding: 10px;
 }
 
 /* FIX TABLE MOBILE */
