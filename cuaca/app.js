@@ -23,14 +23,9 @@ document.getElementById("condition").innerHTML=getWeatherText(w.weather_code)
 document.getElementById("wind").innerHTML=
 `💨 ${w.wind_speed_10m} km/h • arah ${Math.round(w.wind_direction_10m)}°`
 
-document.getElementById("rain").innerHTML=
-`🌧 ${w.precipitation} mm`
-
-document.getElementById("cloud").innerHTML=
-`☁ ${w.cloud_cover}%`
-
-document.getElementById("gust").innerHTML=
-`⚡ gust ${w.wind_gusts_10m} km/h`
+document.getElementById("rain").innerHTML=`🌧 ${w.precipitation} mm`
+document.getElementById("cloud").innerHTML=`☁ ${w.cloud_cover}%`
+document.getElementById("gust").innerHTML=`⚡ gust ${w.wind_gusts_10m} km/h`
 
 checkDrone(w)
 
@@ -41,21 +36,16 @@ checkDrone(w)
 function getWeatherText(code){
 
 const map={
-
 0:"Cerah",
 1:"Cerah Berawan",
 2:"Berawan Sebagian",
 3:"Berawan",
-
 45:"Kabut",
-
 51:"Gerimis",
 61:"Hujan",
 63:"Hujan",
 65:"Hujan Lebat",
-
 95:"Badai"
-
 }
 
 return map[code] || "Cuaca"
@@ -102,6 +92,13 @@ marker=new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
+/* 🔥 penting: paksa render */
+map.on("load",()=>{
+setTimeout(()=>{
+map.resize()
+},200)
+})
+
 }
 
 /* ================= LOCATION ================= */
@@ -141,5 +138,9 @@ loadWeather()
 
 /* ================= INIT ================= */
 
+window.onload = () => {
+
 initMap()
 loadWeather()
+
+}
