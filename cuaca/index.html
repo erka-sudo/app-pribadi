@@ -46,7 +46,16 @@
 
 </div>
 
-<ul class="nav nav-tabs mb-3">
+<div class="text-center mb-3">
+
+<button class="btn btn-info" onclick="setLayer('wind')">🌬 Wind</button>
+<button class="btn btn-primary" onclick="setLayer('rain')">🌧 Rain</button>
+
+</div>
+
+<div id="map"></div>
+
+<ul class="nav nav-tabs mt-4 mb-3">
 
 <li class="nav-item">
 <button class="nav-link active" onclick="showMode('hourly')">Per Jam</button>
@@ -63,10 +72,6 @@
 </ul>
 
 <div id="forecast" class="row g-3"></div>
-
-<h3 class="mt-5">Radar Hujan</h3>
-
-<div id="map"></div>
 
 </div>
 
