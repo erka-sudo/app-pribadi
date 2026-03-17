@@ -15,6 +15,7 @@ textarea{width:100%;height:120px;margin-top:10px;}
 button{background:#2b7cff;color:white;border:none;cursor:pointer;}
 button:hover{background:#1a5fd0;}
 #result{margin-top:20px;white-space:pre;font-family:monospace;}
+.sample{font-size:13px;color:#555;margin-top:5px;}
 </style>
 </head>
 
@@ -25,7 +26,7 @@ button:hover{background:#1a5fd0;}
 <h2>Coordinate Converter (QC Version)</h2>
 
 <label>From</label>
-<select id="from">
+<select id="from" onchange="updateSampleLink()">
 <option value="geo">Geodetic Decimal</option>
 <option value="utm">UTM</option>
 <option value="tm3">TM3</option>
@@ -48,6 +49,9 @@ button:hover{background:#1a5fd0;}
 <hr>
 
 <input type="file" id="csv">
+
+<div class="sample" id="sampleLink"></div>
+
 <button onclick="convertCSV()">Convert CSV</button>
 
 <div id="result"></div>
@@ -57,7 +61,49 @@ button:hover{background:#1a5fd0;}
 <script>
 
 // =====================
-// PARSE ZONE (AUTO DETECT)
+// SAMPLE CSV DOWNLOAD
+// =====================
+function updateSampleLink(){
+
+let from = document.getElementById("from").value;
+let link = document.getElementById("sampleLink");
+
+if(from==="geo"){
+link.innerHTML = '<a href="#" onclick="downloadSample(\'geo\')">Download contoh CSV Geodetik</a>';
+}
+else if(from==="utm"){
+link.innerHTML = '<a href="#" onclick="downloadSample(\'utm\')">Download contoh CSV UTM</a>';
+}
+else if(from==="tm3"){
+link.innerHTML = '<a href="#" onclick="downloadSample(\'tm3\')">Download contoh CSV TM3</a>';
+}
+
+}
+
+function downloadSample(type){
+
+let content = "";
+
+if(type==="geo"){
+content = "lat,lon\n-2.070877,102.772954\n-2.071000,102.773200";
+}
+if(type==="utm"){
+content = "x,y\n222745,9829000\n223000,9830000";
+}
+if(type==="tm3"){
+content = "x,y\n120000,1500000\n130000,1502000";
+}
+
+let blob = new Blob([content]);
+let a = document.createElement("a");
+a.href = URL.createObjectURL(blob);
+a.download = "sample_"+type+".csv";
+a.click();
+
+}
+
+// =====================
+// PARSE ZONE
 // =====================
 function parseZoneInput(){
 
@@ -68,7 +114,6 @@ return {error:"Zona kosong"};
 }
 
 if(z.includes(".")){
-
 let parts = z.split(".");
 let base = parseInt(parts[0]);
 let sub = parts[1];
@@ -137,7 +182,6 @@ function validateGeo(lat, lon){
 let msg="";
 if(lat<-90||lat>90) msg+="Lat error | ";
 if(lon<-180||lon>180) msg+="Lon error | ";
-if(lat>10||lat<-15||lon<90||lon>145) msg+="Out of Indonesia | ";
 return msg;
 }
 
@@ -145,7 +189,6 @@ function validateUTM(e,n){
 let msg="";
 if(e<100000||e>900000) msg+="Easting error | ";
 if(n<0||n>10000000) msg+="Northing error | ";
-if(n<8000000) msg+="Zona/hemisphere salah | ";
 return msg;
 }
 
@@ -164,9 +207,7 @@ function convertPoint(a,b,from,to){
 let warn="";
 let z = parseZoneInput();
 
-if(z.error && (from!=="geo")){
-return z.error;
-}
+if(z.error && from!=="geo") return z.error;
 
 if(from==="geo"){
 warn+=validateGeo(a,b);
@@ -177,15 +218,13 @@ if(from==="geo" && to==="utm"){
 let zone=autoUTMzone(b);
 let p=proj4("EPSG:4326",buildUTMproj(zone,a),[b,a]);
 warn+=validateUTM(p[0],p[1]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+" auto) | "+warn;
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+") | "+warn;
 }
 
 // UTM → GEO
 if(from==="utm" && to==="geo"){
-if(z.type!=="utm") return "Zona harus UTM (contoh: 48)";
-warn+=validateUTM(a,b);
 let p=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
-return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
+return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
 // GEO → TM3
@@ -193,49 +232,30 @@ if(from==="geo" && to==="tm3"){
 let zone=getTM3zone(b);
 let cm=parseTM3zone(zone);
 let p=proj4("EPSG:4326",buildTM3proj(cm),[b,a]);
-warn+=validateTM3(p[0],p[1]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+") | "+warn;
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 }
 
 // TM3 → GEO
 if(from==="tm3" && to==="geo"){
-if(z.type!=="tm3") return "Zona harus TM3 (contoh: 48.1)";
-warn+=validateTM3(a,b);
 let cm=parseTM3zone(z.zone);
 let p=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
-return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
-}
-
-// UTM → TM3
-if(from==="utm" && to==="tm3"){
-if(z.type!=="utm") return "Zona harus UTM";
-let geo=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
-let tm3z=getTM3zone(geo[0]);
-let cm=parseTM3zone(tm3z);
-let p=proj4("EPSG:4326",buildTM3proj(cm),[geo[0],geo[1]]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3z+")";
-}
-
-// TM3 → UTM
-if(from==="tm3" && to==="utm"){
-if(z.type!=="tm3") return "Zona harus TM3";
-let cm=parseTM3zone(z.zone);
-let geo=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
-let utmZ=autoUTMzone(geo[0]);
-let p=proj4("EPSG:4326",buildUTMproj(utmZ,geo[1]),[geo[0],geo[1]]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZ+")";
+return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
 return "conversion not defined";
 }
 
 // =====================
+// MANUAL
+// =====================
 function convertManual(){
+
 let lines=document.getElementById("manual").value.trim().split("\n");
 let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out="";
+
 lines.forEach(l=>{
 let p=l.split(",");
 let a=parseFloat(p[0]);
@@ -243,9 +263,13 @@ let b=parseFloat(p[1]);
 if(isNaN(a)||isNaN(b)) return;
 out+=l+" → "+convertPoint(a,b,from,to)+"\n";
 });
+
 document.getElementById("result").innerText=out;
+
 }
 
+// =====================
+// CSV
 // =====================
 function convertCSV(){
 
@@ -262,27 +286,24 @@ let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out=[];
-let ok=0, err=0;
 
 data.forEach(r=>{
-let lat=parseFloat(r.lat||r.y);
-let lon=parseFloat(r.lon||r.x);
 
-if(isNaN(lat)||isNaN(lon)) return;
+let v1=parseFloat(r.lat||r.y||r.x);
+let v2=parseFloat(r.lon||r.x||r.y);
 
-let qc=validateGeo(lat,lon);
+if(isNaN(v1)||isNaN(v2)) return;
 
-if(qc) err++; else ok++;
+let conv=convertPoint(v1,v2,from,to);
 
-let conv=convertPoint(lat,lon,from,to);
+out.push(v1+","+v2+" → "+conv);
 
-out.push(lat+","+lon+" → "+conv+(qc?" ⚠️ "+qc:" | OK"));
 });
 
-document.getElementById("result").innerText=
-"OK: "+ok+" | ERROR: "+err+"\n\n"+out.join("\n");
+document.getElementById("result").innerText=out.join("\n");
 
 downloadCSV(out);
+
 }
 });
 }
@@ -298,6 +319,9 @@ a.href=URL.createObjectURL(blob);
 a.download="converted.csv";
 a.click();
 }
+
+// init
+updateSampleLink();
 
 </script>
 
