@@ -7,7 +7,7 @@ let weatherData
 
 async function loadWeather(){
 
-let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=auto&forecast_days=7`
+let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=auto&forecast_days=7`
 
 let res = await fetch(url)
 
@@ -17,12 +17,37 @@ document.getElementById("temp").innerHTML =
 weatherData.current_weather.temperature + "°C"
 
 document.getElementById("condition").innerHTML =
-"Wind " + weatherData.current_weather.windspeed + " km/h"
+decodeWeather(weatherData.current_weather.weathercode)
 
 document.getElementById("location").innerHTML =
 lat.toFixed(3) + " , " + lon.toFixed(3)
 
 showMode("hourly")
+
+}
+
+function decodeWeather(code){
+
+const map = {
+
+0:"Clear sky",
+1:"Mostly clear",
+2:"Partly cloudy",
+3:"Cloudy",
+45:"Fog",
+48:"Fog",
+51:"Drizzle",
+53:"Drizzle",
+55:"Heavy drizzle",
+61:"Rain",
+63:"Rain",
+65:"Heavy rain",
+71:"Snow",
+95:"Thunderstorm"
+
+}
+
+return map[code] || "Weather"
 
 }
 
@@ -32,9 +57,15 @@ let container = document.getElementById("forecast")
 
 container.innerHTML = ""
 
+let now = new Date()
+
+let startIndex = weatherData.hourly.time.findIndex(t=>{
+return new Date(t) >= now
+})
+
 if(mode==="hourly"){
 
-for(let i=0;i<12;i++){
+for(let i=startIndex;i<startIndex+12;i++){
 
 createCard(
 weatherData.hourly.time[i],
@@ -48,7 +79,7 @@ weatherData.hourly.precipitation[i]
 
 if(mode==="3hour"){
 
-for(let i=0;i<24;i+=3){
+for(let i=startIndex;i<startIndex+24;i+=3){
 
 createCard(
 weatherData.hourly.time[i],
@@ -62,7 +93,7 @@ weatherData.hourly.precipitation[i]
 
 if(mode==="6hour"){
 
-for(let i=0;i<48;i+=6){
+for(let i=startIndex;i<startIndex+48;i+=6){
 
 createCard(
 weatherData.hourly.time[i],
@@ -170,7 +201,7 @@ map = new maplibregl.Map({
 
 container:'map',
 
-style:'https://demotiles.maplibre.org/style.json',
+style:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
 
 center:[lon,lat],
 
@@ -206,7 +237,7 @@ type:"raster",
 
 source:"rain",
 
-paint:{'raster-opacity':0.6}
+paint:{'raster-opacity':0.65}
 
 })
 
