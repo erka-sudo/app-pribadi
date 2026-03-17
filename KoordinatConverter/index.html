@@ -40,11 +40,8 @@ button:hover{background:#1a5fd0;}
 
 <textarea id="manual" placeholder="-2.070877130,102.772954818"></textarea>
 
-<label>UTM Zone (optional)</label>
-<input id="utmzone" placeholder="48">
-
-<label>TM3 Zone</label>
-<input id="tm3zone" placeholder="50.2">
+<label>Zone (UTM atau TM3)</label>
+<input id="zone" placeholder="48 atau 48.1">
 
 <button onclick="convertManual()">Convert</button>
 
@@ -58,6 +55,40 @@ button:hover{background:#1a5fd0;}
 </div>
 
 <script>
+
+// =====================
+// PARSE ZONE (AUTO DETECT)
+// =====================
+function parseZoneInput(){
+
+let z = document.getElementById("zone").value.trim();
+
+if(!z){
+return {error:"Zona kosong"};
+}
+
+if(z.includes(".")){
+
+let parts = z.split(".");
+let base = parseInt(parts[0]);
+let sub = parts[1];
+
+if((sub==="1" || sub==="2") && !isNaN(base)){
+return {type:"tm3", zone:z};
+}
+
+return {error:"Format TM3 salah (harus .1 atau .2)"};
+}
+
+let num = parseInt(z);
+
+if(!isNaN(num)){
+return {type:"utm", zone:num};
+}
+
+return {error:"Zona tidak valid"};
+
+}
 
 // =====================
 // UTM
@@ -131,6 +162,11 @@ return msg;
 function convertPoint(a,b,from,to){
 
 let warn="";
+let z = parseZoneInput();
+
+if(z.error && (from!=="geo")){
+return z.error;
+}
 
 if(from==="geo"){
 warn+=validateGeo(a,b);
@@ -146,10 +182,9 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+" auto) | "+warn;
 
 // UTM → GEO
 if(from==="utm" && to==="geo"){
-let zone=document.getElementById("utmzone").value;
-if(!zone) return "ISI UTM ZONE";
+if(z.type!=="utm") return "Zona harus UTM (contoh: 48)";
 warn+=validateUTM(a,b);
-let p=proj4(buildUTMproj(zone,-1),"EPSG:4326",[a,b]);
+let p=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
 return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
 }
 
@@ -164,39 +199,30 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+") | "+warn;
 
 // TM3 → GEO
 if(from==="tm3" && to==="geo"){
-let zone=document.getElementById("tm3zone").value;
-if(!zone) return "ISI TM3 ZONE";
+if(z.type!=="tm3") return "Zona harus TM3 (contoh: 48.1)";
 warn+=validateTM3(a,b);
-let cm=parseTM3zone(zone);
+let cm=parseTM3zone(z.zone);
 let p=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
 return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
 }
 
 // UTM → TM3
 if(from==="utm" && to==="tm3"){
-let zone=document.getElementById("utmzone").value;
-if(!zone) return "ISI UTM ZONE";
-
-let geo=proj4(buildUTMproj(zone,-1),"EPSG:4326",[a,b]);
-
+if(z.type!=="utm") return "Zona harus UTM";
+let geo=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
 let tm3z=getTM3zone(geo[0]);
 let cm=parseTM3zone(tm3z);
-
 let p=proj4("EPSG:4326",buildTM3proj(cm),[geo[0],geo[1]]);
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3z+")";
 }
 
 // TM3 → UTM
 if(from==="tm3" && to==="utm"){
-let tm3z=document.getElementById("tm3zone").value;
-if(!tm3z) return "ISI TM3 ZONE";
-
-let cm=parseTM3zone(tm3z);
+if(z.type!=="tm3") return "Zona harus TM3";
+let cm=parseTM3zone(z.zone);
 let geo=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
-
 let utmZ=autoUTMzone(geo[0]);
 let p=proj4("EPSG:4326",buildUTMproj(utmZ,geo[1]),[geo[0],geo[1]]);
-
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZ+")";
 }
 
