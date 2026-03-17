@@ -8,13 +8,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-
 body{
 font-family:Arial;
 background:#f2f2f2;
 padding:40px;
 }
-
 .box{
 background:white;
 padding:25px;
@@ -23,42 +21,35 @@ margin:auto;
 border-radius:10px;
 box-shadow:0 0 15px rgba(0,0,0,0.1);
 }
-
 input,select,button{
 width:100%;
 padding:10px;
 margin-top:10px;
 }
-
 textarea{
 width:100%;
 height:120px;
 margin-top:10px;
 }
-
 button{
 background:#2b7cff;
 color:white;
 border:none;
 cursor:pointer;
 }
-
 button:hover{
 background:#1a5fd0;
 }
-
 #result{
 margin-top:20px;
 white-space:pre;
 font-family:monospace;
 }
-
 .example{
 font-size:13px;
 color:#666;
 margin-top:5px;
 }
-
 </style>
 </head>
 
@@ -83,7 +74,6 @@ margin-top:5px;
 </select>
 
 <label>Manual Coordinates</label>
-
 <textarea id="manual" placeholder="-2.070877130,102.772954818"></textarea>
 
 <div class="example">
@@ -116,45 +106,57 @@ lat,lon
 <script>
 
 // =====================
-// TM3 ZONE → CM (FIX BENAR)
+// TM3 ZONE → CM (FINAL BENAR)
 // =====================
 function parseTM3zone(zoneStr){
 
-let zone = parseInt(zoneStr.split(".")[0]);
+let parts = zoneStr.split(".");
+let zone = parseInt(parts[0]);
+let sub = parts[1];
 
-if(isNaN(zone)){
+if(isNaN(zone) || !sub) return null;
+
+// CM dari UTM
+let cm_utm = zone * 6 - 183;
+
+if(sub === "1") return cm_utm - 1.5;
+if(sub === "2") return cm_utm + 1.5;
+
 return null;
-}
-
-// 🔥 RUMUS BENAR
-let cm = zone * 3 - 40.5;
-
-return cm;
 
 }
 
 // =====================
-// GEO → TM3
+// GEO → TM3 ZONE (FIX)
 // =====================
 function getTM3zone(lon){
 
-let zone = Math.floor((lon - 96) / 3) + 46;
-let cm = zone * 3 - 40.5;
+let utmZone = Math.floor((lon + 180)/6) + 1;
+let cm_utm = utmZone * 6 - 183;
 
-let part = lon < cm ? ".1" : ".2";
+let sub = lon < cm_utm ? ".1" : ".2";
 
-return zone + part;
+return utmZone + sub;
 
 }
 
-function getTM3proj(lon){
-
-let zone = Math.floor((lon - 96) / 3) + 46;
-let cm = zone * 3 - 40.5;
-
+// =====================
+// BUILD PROJECTION
+// =====================
+function buildTM3proj(cm){
 return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 " +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
+}
 
+// =====================
+// VALIDASI TM3
+// =====================
+function validateTM3(e){
+
+if(Math.abs(e - 200000) > 120000){
+return " ⚠️ ZONA SALAH";
+}
+return "";
 }
 
 // =====================
@@ -177,9 +179,13 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
 
 // GEO → TM3
 if(from==="geo" && to==="tm3"){
-let proj=getTM3proj(b);
-let p=proj4("EPSG:4326",proj,[b,a]);
-let zone=getTM3zone(b);
+
+let zone = getTM3zone(b);
+let cm = parseTM3zone(zone);
+
+let proj = buildTM3proj(cm);
+let p = proj4("EPSG:4326",proj,[b,a]);
+
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 }
 
@@ -191,7 +197,7 @@ let p=proj4(proj,"EPSG:4326",[b,a]);
 return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
-// ✅ TM3 → GEO (SUDAH BENAR)
+// TM3 → GEO
 if(from==="tm3" && to==="geo"){
 
 let zoneStr = document.getElementById("tm3zone").value.trim();
@@ -201,17 +207,15 @@ return "ISI ZONA TM3 (contoh: 50.2)";
 }
 
 let cm = parseTM3zone(zoneStr);
+if(cm===null) return "FORMAT ZONA SALAH";
 
-if(cm===null){
-return "FORMAT ZONA SALAH";
-}
+let proj = buildTM3proj(cm);
 
-let proj = "+proj=tmerc +lat_0=0 +lon_0="+cm+
-" +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
+let warning = validateTM3(a);
 
-let p=proj4(proj,"EPSG:4326",[b,a]);
+let p=proj4(proj,"EPSG:4326",[a,b]);
 
-return p[1].toFixed(8)+","+p[0].toFixed(8)+" (TM3 "+zoneStr+")";
+return p[1].toFixed(8)+","+p[0].toFixed(8)+" (TM3 "+zoneStr+")"+warning;
 }
 
 return "conversion not defined";
