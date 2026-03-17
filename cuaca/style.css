@@ -47,3 +47,11 @@ background-position:-100px 500px;
 }
 
 }
+
+.forecast-card{
+background:#1e293b;
+border-radius:10px;
+padding:12px;
+text-align:center;
+font-size:14px;
+}
