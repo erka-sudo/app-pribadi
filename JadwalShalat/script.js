@@ -313,15 +313,13 @@ function updateCompass() {
 document.getElementById("compassNeedle")
 .setAttribute("transform","rotate("+heading+" 100 100)")
 
-/* garis kiblat RELATIF */
-let relativeQibla = (qiblaDirection - heading + 360) % 360
-
+/* ✅ FIX: garis kiblat absolut */
 document.getElementById("qiblaLine")
-.setAttribute("transform","rotate("+relativeQibla+" 100 100)")
+.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
 
 /* marker map */
 if(directionElement){
-directionElement.style.transform="rotate("+relativeQibla+"deg)"
+directionElement.style.transform="rotate("+qiblaDirection+"deg)"
 }
 
 }
@@ -329,10 +327,6 @@ directionElement.style.transform="rotate("+relativeQibla+"deg)"
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass() {
-
-/*
-User hadap utara survey grade
-*/
 
 compassOffset = (360 - heading) % 360
 
