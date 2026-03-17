@@ -318,9 +318,9 @@ if(el) el.innerText="Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 function startCompass(){
 
 if(compassStarted) return
-compassStarted=true
+compassStarted = true
 
-function handler(event){
+window.addEventListener("deviceorientation", function(event){
 
 let rawHeading
 
@@ -330,35 +330,36 @@ rawHeading = event.webkitCompassHeading
 rawHeading = 360 - event.alpha
 }else return
 
-/* warmup */
+/* buang data awal */
 sensorCounter++
-if(sensorCounter < 10) return
-sensorReady = true
+if(sensorCounter < 5) return
 
-/* auto calibrate awal */
-if(compassOffset === 0 && sensorReady){
-compassOffset = (360 - rawHeading) % 360
-}
+/* TANPA auto offset dulu */
+let newHeading = rawHeading
 
-/* smoothing */
-let newHeading = (rawHeading + compassOffset + 360) % 360
-
+/* ===== FIX ANGLE SMOOTH ===== */
 if(smoothHeading === 0){
 smoothHeading = newHeading
 }else{
-smoothHeading = smoothHeading + (newHeading - smoothHeading) * 0.2
+
+let diff = newHeading - smoothHeading
+
+if(diff > 180) diff -= 360
+if(diff < -180) diff += 360
+
+smoothHeading = smoothHeading + diff * 0.2
 }
 
-heading = smoothHeading
+heading = (smoothHeading + compassOffset + 360) % 360
 
 /* UI */
 let el = document.getElementById("headingText")
 if(el) el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
 
-/* stabilitas */
+/* stabil check */
 if(lastHeading !== null){
-let diff = Math.abs(heading - lastHeading)
-if(diff > 20){
+let delta = Math.abs(heading - lastHeading)
+if(delta > 25){
 unstableCount++
 }else{
 unstableCount = 0
@@ -377,11 +378,8 @@ warn.innerText = ""
 lastHeading = heading
 
 updateCompass()
-}
 
-/* dual listener */
-window.addEventListener("deviceorientationabsolute", handler, true)
-window.addEventListener("deviceorientation", handler, true)
+}, true)
 
 }
 
@@ -392,22 +390,19 @@ function updateCompass(){
 let needle=document.getElementById("compassNeedle")
 if(needle) needle.setAttribute("transform","rotate("+heading+" 100 100)")
 
-/* relative qibla (INI YANG BENAR) */
+/* RELATIVE (INI YANG BENAR) */
 let relative = qiblaDirection - heading
 
 let line=document.getElementById("qiblaLine")
 if(line) line.setAttribute("transform","rotate("+relative+" 100 100)")
 
-if(directionElement){
-directionElement.style.transform="rotate("+qiblaDirection+"deg)"
-}
 }
 
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass(){
-compassOffset=(360-heading)%360
-alert("Kalibrasi manual: "+compassOffset.toFixed(1)+"°")
+compassOffset = -heading
+alert("Kalibrasi berhasil")
 }
 
 /* ================= CLOCK ================= */
