@@ -19,9 +19,10 @@ padding:10px;
 border-bottom:1px solid #ccc;
 
 display:flex;
-flex-wrap:wrap;
 align-items:center;
 gap:10px;
+flex-wrap:nowrap;
+overflow-x:auto;
 }
 
 .topbar-group{
@@ -99,6 +100,7 @@ background:#fff2a8;
 }
 
 #fileCount{
+font-weight:bold;
 color:#0a8f2a;
 }
 
@@ -115,27 +117,21 @@ color:#555;
 
 <div class="topbar">
 
-<div class="topbar-group">
 <input type="file" id="folder" webkitdirectory multiple>
-<span class="info" id="totalFile">0 files</span>
+
 <span class="info" id="fileCount">0 JPG</span>
-</div>
 
-<div class="topbar-group">
-Threshold
+<span>Threshold</span>
 <input id="threshold" value="0.05" size="6">
-</div>
 
-<div class="topbar-group">
 <button onclick="loadProject()">Open Project</button>
 <button onclick="zoomToFlights()">Zoom to Flight</button>
 <button onclick="selectAllFlights()">Select All</button>
 <button onclick="unselectAllFlights()">Unselect All</button>
-</div>
 
-<div class="topbar-right">
-Point Size
+<span style="margin-left:auto;">Point Size</span>
 <input type="range" id="pointSize" min="4" max="16" value="6">
+
 </div>
 
 </div>
@@ -301,7 +297,6 @@ jpgCount++
 }
 
 document.getElementById("fileCount").innerText = jpgCount + " JPG"
-document.getElementById("totalFile").innerText = files.length + " files"
 
 })
 
