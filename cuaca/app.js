@@ -5,137 +5,105 @@ let map
 let marker
 let weatherData
 
+/* ================= WEATHER ================= */
+
 async function loadWeather(){
 
-let url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&current_weather=true&timezone=auto&forecast_days=7`
+let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,windspeed_10m,windgusts_10m,weathercode&current_weather=true&timezone=auto&forecast_days=7`
 
-let res = await fetch(url)
+let res=await fetch(url)
 
-weatherData = await res.json()
+weatherData=await res.json()
 
-document.getElementById("temp").innerHTML =
-weatherData.current_weather.temperature + "°C"
+document.getElementById("temp").innerHTML=
+weatherData.current_weather.temperature+"°C"
 
-document.getElementById("condition").innerHTML =
+document.getElementById("condition").innerHTML=
 decodeWeather(weatherData.current_weather.weathercode)
 
-document.getElementById("location").innerHTML =
-lat.toFixed(3) + " , " + lon.toFixed(3)
+document.getElementById("wind").innerHTML=
+"Wind "+weatherData.current_weather.windspeed+" km/h"
+
+document.getElementById("location").innerHTML=
+lat.toFixed(3)+" , "+lon.toFixed(3)
 
 showMode("hourly")
 
 }
 
+/* ================= WEATHER CODE ================= */
+
 function decodeWeather(code){
 
-const map = {
+const w={
 
-0:"Clear sky",
-1:"Mostly clear",
-2:"Partly cloudy",
-3:"Cloudy",
-45:"Fog",
-48:"Fog",
-51:"Drizzle",
-53:"Drizzle",
-55:"Heavy drizzle",
-61:"Rain",
-63:"Rain",
-65:"Heavy rain",
-71:"Snow",
-95:"Thunderstorm"
+0:"☀ Clear sky",
+1:"🌤 Mostly clear",
+2:"⛅ Partly cloudy",
+3:"☁ Cloudy",
+
+45:"🌫 Fog",
+48:"🌫 Fog",
+
+51:"🌦 Drizzle",
+53:"🌦 Drizzle",
+55:"🌧 Heavy drizzle",
+
+61:"🌧 Rain",
+63:"🌧 Rain",
+65:"🌧 Heavy rain",
+
+71:"❄ Snow",
+
+95:"⛈ Thunderstorm"
 
 }
 
-return map[code] || "Weather"
+return w[code] || "Weather"
 
 }
+
+/* ================= FORECAST ================= */
 
 function showMode(mode){
 
-let container = document.getElementById("forecast")
+let container=document.getElementById("forecast")
 
-container.innerHTML = ""
+container.innerHTML=""
 
-let now = new Date()
+let now=new Date()
 
-let startIndex = weatherData.hourly.time.findIndex(t=>{
-return new Date(t) >= now
+let startIndex=weatherData.hourly.time.findIndex(t=>{
+return new Date(t)>=now
 })
 
-if(mode==="hourly"){
+let step=1
 
-for(let i=startIndex;i<startIndex+12;i++){
+if(mode==="3hour") step=3
+if(mode==="6hour") step=6
+
+for(let i=startIndex;i<startIndex+24;i+=step){
 
 createCard(
 weatherData.hourly.time[i],
 weatherData.hourly.temperature_2m[i],
-weatherData.hourly.precipitation[i]
+weatherData.hourly.precipitation[i],
+weatherData.hourly.windspeed_10m[i],
+weatherData.hourly.windgusts_10m[i],
+weatherData.hourly.cloudcover[i]
 )
 
 }
 
 }
 
-if(mode==="3hour"){
+/* ================= CARD ================= */
 
-for(let i=startIndex;i<startIndex+24;i+=3){
+function createCard(time,temp,rain,wind,gust,cloud){
 
-createCard(
-weatherData.hourly.time[i],
-weatherData.hourly.temperature_2m[i],
-weatherData.hourly.precipitation[i]
-)
+let container=document.getElementById("forecast")
 
-}
-
-}
-
-if(mode==="6hour"){
-
-for(let i=startIndex;i<startIndex+48;i+=6){
-
-createCard(
-weatherData.hourly.time[i],
-weatherData.hourly.temperature_2m[i],
-weatherData.hourly.precipitation[i]
-)
-
-}
-
-}
-
-if(mode==="daily"){
-
-for(let i=0;i<7;i++){
-
-let card = document.createElement("div")
-
-card.className="col-md-2 forecast-card"
-
-card.innerHTML = `
-
-<h6>${weatherData.daily.time[i]}</h6>
-
-<div>🌡 ${weatherData.daily.temperature_2m_max[i]}°C</div>
-
-<div>🌧 ${weatherData.daily.precipitation_sum[i]} mm</div>
-
-`
-
-container.appendChild(card)
-
-}
-
-}
-
-}
-
-function createCard(time,temp,rain){
-
-let container = document.getElementById("forecast")
-
-let card = document.createElement("div")
+let card=document.createElement("div")
 
 card.className="col-md-2 forecast-card"
 
@@ -147,29 +115,35 @@ card.innerHTML=`
 
 <div>🌧 ${rain} mm</div>
 
+<div>💨 ${wind} km/h</div>
+
+<div>⚡ gust ${gust}</div>
+
+<div>☁ ${cloud}%</div>
+
 `
 
 container.appendChild(card)
 
 }
 
+/* ================= GPS ================= */
+
 function getGPS(){
 
 if(!navigator.geolocation){
 
 alert("Browser tidak mendukung GPS")
-
 return
 
 }
 
 navigator.geolocation.getCurrentPosition(pos=>{
 
-lat = pos.coords.latitude
-lon = pos.coords.longitude
+lat=pos.coords.latitude
+lon=pos.coords.longitude
 
 map.setCenter([lon,lat])
-
 marker.setLngLat([lon,lat])
 
 loadWeather()
@@ -177,6 +151,8 @@ loadWeather()
 })
 
 }
+
+/* ================= PICK LOCATION ================= */
 
 function enablePickLocation(){
 
@@ -184,8 +160,8 @@ alert("Klik lokasi pada peta")
 
 map.once("click",(e)=>{
 
-lat = e.lngLat.lat
-lon = e.lngLat.lng
+lat=e.lngLat.lat
+lon=e.lngLat.lng
 
 marker.setLngLat([lon,lat])
 
@@ -195,29 +171,31 @@ loadWeather()
 
 }
 
+/* ================= MAP ================= */
+
 function initMap(){
 
-map = new maplibregl.Map({
+map=new maplibregl.Map({
 
-container:'map',
+container:"map",
 
-style:'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+style:"https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
 
 center:[lon,lat],
 
-zoom:5
+zoom:6
 
 })
 
-marker = new maplibregl.Marker()
-
+marker=new maplibregl.Marker()
 .setLngLat([lon,lat])
-
 .addTo(map)
+
+/* radar hujan */
 
 map.on("load",()=>{
 
-map.addSource("rain",{
+map.addSource("radar",{
 
 type:"raster",
 
@@ -231,13 +209,13 @@ tileSize:256
 
 map.addLayer({
 
-id:"rain-layer",
+id:"radar-layer",
 
 type:"raster",
 
-source:"rain",
+source:"radar",
 
-paint:{'raster-opacity':0.65}
+paint:{'raster-opacity':0.6}
 
 })
 
@@ -245,6 +223,7 @@ paint:{'raster-opacity':0.65}
 
 }
 
-loadWeather()
+/* ================= INIT ================= */
 
+loadWeather()
 initMap()
