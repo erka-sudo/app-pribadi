@@ -324,20 +324,20 @@ window.addEventListener("deviceorientation", function(event){
 
 let rawHeading
 
+/* iOS */
 if(event.webkitCompassHeading){
 rawHeading = event.webkitCompassHeading
-}else if(event.alpha !== null){
+}
+/* Android */
+else if(event.alpha !== null){
 rawHeading = 360 - event.alpha
-}else return
+}
+else return
 
-/* buang data awal */
-sensorCounter++
-if(sensorCounter < 5) return
-
-/* TANPA auto offset dulu */
+/* TANPA OFFSET */
 let newHeading = rawHeading
 
-/* ===== FIX ANGLE SMOOTH ===== */
+/* smoothing khusus sudut */
 if(smoothHeading === 0){
 smoothHeading = newHeading
 }else{
@@ -347,35 +347,14 @@ let diff = newHeading - smoothHeading
 if(diff > 180) diff -= 360
 if(diff < -180) diff += 360
 
-smoothHeading = smoothHeading + diff * 0.2
+smoothHeading += diff * 0.15
 }
 
-heading = (smoothHeading + compassOffset + 360) % 360
+heading = (smoothHeading + 360) % 360
 
-/* UI */
+/* tampil */
 let el = document.getElementById("headingText")
 if(el) el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
-
-/* stabil check */
-if(lastHeading !== null){
-let delta = Math.abs(heading - lastHeading)
-if(delta > 25){
-unstableCount++
-}else{
-unstableCount = 0
-}
-}
-
-let warn = document.getElementById("compassWarning")
-if(warn){
-if(unstableCount >= 3){
-warn.innerText = "⚠️ Kompas tidak stabil. Gerakkan HP (angka 8)"
-}else{
-warn.innerText = ""
-}
-}
-
-lastHeading = heading
 
 updateCompass()
 
@@ -387,22 +366,26 @@ updateCompass()
 
 function updateCompass(){
 
-let needle=document.getElementById("compassNeedle")
-if(needle) needle.setAttribute("transform","rotate("+heading+" 100 100)")
+/* jarum ikut HP */
+let needle = document.getElementById("compassNeedle")
+if(needle){
+needle.setAttribute("transform","rotate("+heading+" 100 100)")
+}
 
-/* RELATIVE (INI YANG BENAR) */
+/* kiblat RELATIF terhadap HP */
 let relative = qiblaDirection - heading
 
-let line=document.getElementById("qiblaLine")
-if(line) line.setAttribute("transform","rotate("+relative+" 100 100)")
+let line = document.getElementById("qiblaLine")
+if(line){
+line.setAttribute("transform","rotate("+relative+" 100 100)")
+}
 
 }
 
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass(){
-compassOffset = -heading
-alert("Kalibrasi berhasil")
+compassOffset = (360 - heading) % 360
 }
 
 /* ================= CLOCK ================= */
