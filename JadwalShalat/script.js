@@ -67,16 +67,35 @@ marker = new maplibregl.Marker()
 
 })
 
+/* ================= FIX TAMBAHAN ================= */
+
+/* ✅ fungsi yang sebelumnya tidak ada */
+function openMasjidMode() {
+document.getElementById("masjidMode").style.display="block"
+}
+
+function closeMasjidMode() {
+document.getElementById("masjidMode").style.display="none"
+}
+
+/* ✅ perbaikan UX */
+function useMapPoint() {
+if (!selectedPoint) {
+alert("Klik peta dulu untuk memilih lokasi")
+return
+}
+setLocation(selectedPoint.lat, selectedPoint.lng)
+}
+
+/* ================= GPS ================= */
+
 function getGPS() {
 navigator.geolocation.getCurrentPosition(pos => {
 setLocation(pos.coords.latitude, pos.coords.longitude)
 })
 }
 
-function useMapPoint() {
-if (!selectedPoint) return
-setLocation(selectedPoint.lat, selectedPoint.lng)
-}
+/* ================= SET LOCATION ================= */
 
 function setLocation(a, b) {
 
@@ -188,13 +207,15 @@ if (document.getElementById(id))
 document.getElementById(id).innerText = timesToday[id]
 }
 
-/* mode masjid */
+/* mode masjid (DITAMBAH PROTEKSI TANPA MENGHAPUS) */
+if(document.getElementById("mfajr")){
 document.getElementById("mfajr").innerText = timesToday.fajr
 document.getElementById("msunrise").innerText = timesToday.sunrise
 document.getElementById("mdhuhr").innerText = timesToday.dhuhr
 document.getElementById("masr").innerText = timesToday.asr
 document.getElementById("mmaghrib").innerText = timesToday.maghrib
 document.getElementById("misha").innerText = timesToday.isha
+}
 
 highlightPrayer()
 }
@@ -313,7 +334,7 @@ function updateCompass() {
 document.getElementById("compassNeedle")
 .setAttribute("transform","rotate("+heading+" 100 100)")
 
-/* ✅ FIX: garis kiblat absolut */
+/* garis kiblat */
 document.getElementById("qiblaLine")
 .setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
 
