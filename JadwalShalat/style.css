@@ -86,3 +86,10 @@ padding: 20px;
 max-width: 900px;
 border-radius: 10px;
 }
+
+.masjidScroll {
+height: 100%;
+overflow-y: auto;
+-webkit-overflow-scrolling: touch;
+padding: 20px;
+}
