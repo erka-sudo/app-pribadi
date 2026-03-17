@@ -66,20 +66,18 @@ color:#888;
 
 <script>
 
-let password = "drone123";  // ganti password di sini
+let password = "drone123"; // ganti password
 
 let input = prompt("Enter access password");
 
-/* jika cancel, kosong, atau salah password */
-if(input === null || input.trim() === "" || input !== password){
+/* jika tekan cancel */
+if (input === null){
+window.location.href = "https://google.com";
+}
 
-alert("Access denied");
-
-/* hentikan loading halaman */
-document.documentElement.innerHTML = "";
-
-throw new Error("Access denied");
-
+/* jika kosong atau salah */
+if (input.trim() === "" || input !== password){
+window.location.href = "https://google.com";
 }
 
 </script>
