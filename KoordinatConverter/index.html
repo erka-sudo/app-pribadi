@@ -200,37 +200,48 @@ let p=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
 return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
-// 🔥 TM3 → UTM (FIX)
+// TM3 → UTM
 if(from==="tm3"&&to==="utm"){
 let cm=parseTM3zone(z.zone);
 let geo=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
-
 let lon=geo[0];
 let lat=geo[1];
-
 let utmZ=autoUTMzone(lon);
-
 let p=proj4("EPSG:4326",buildUTMproj(utmZ,lat),[lon,lat]);
-
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZ+")";
 }
 
-// 🔥 UTM → TM3
+// UTM → TM3
 if(from==="utm"&&to==="tm3"){
 let geo=proj4(buildUTMproj(z.zone,-1),"EPSG:4326",[a,b]);
-
 let lon=geo[0];
 let lat=geo[1];
-
 let tm3z=getTM3zone(lon);
 let cm=parseTM3zone(tm3z);
-
 let p=proj4("EPSG:4326",buildTM3proj(cm),[lon,lat]);
-
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3z+")";
 }
 
 return "conversion not defined";
+}
+
+// =====================
+// 🔥 API BATCH (BARU)
+// =====================
+async function sendCSVtoAPI(data,from,to,zone){
+
+let points=data.map(r=>({
+a:parseFloat(r.lat||r.y||r.x),
+b:parseFloat(r.lon||r.x||r.y)
+}));
+
+let res=await fetch("/api/convert-batch",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({points,from,to,zone})
+});
+
+return await res.json();
 }
 
 // =====================
@@ -254,21 +265,38 @@ document.getElementById("result").innerText=out;
 }
 
 // =====================
-// CSV
+// CSV (AUTO API + FALLBACK)
 // =====================
-function convertCSV(){
+async function convertCSV(){
+
 let file=document.getElementById("csv").files[0];
 if(!file){ alert("Pilih file CSV"); return; }
 
 Papa.parse(file,{
 header:true,
 skipEmptyLines:true,
-complete:function(res){
+
+complete: async function(res){
 
 let data=res.data;
 let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
+let zone=document.getElementById("zone").value;
 
+// 🔥 coba pakai API dulu
+try{
+
+let result=await sendCSVtoAPI(data,from,to,zone);
+
+document.getElementById("result").innerText=
+"API MODE\nTotal: "+result.total+
+"\nChunks: "+result.chunks;
+
+return;
+
+}catch(e){
+
+// 🔁 fallback ke cara lama
 let out=[];
 data.forEach(r=>{
 let v1=parseFloat(r.lat||r.y||r.x);
@@ -281,6 +309,8 @@ out.push(v1+","+v2+" → "+conv);
 
 document.getElementById("result").innerText=out.join("\n");
 downloadCSV(out);
+
+}
 
 }
 });
