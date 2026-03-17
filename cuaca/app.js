@@ -1,5 +1,5 @@
-let lat = -2.1
-let lon = 102.7
+let lat=-2.1
+let lon=102.7
 
 let map
 let marker
@@ -9,25 +9,49 @@ let weatherData
 
 async function loadWeather(){
 
-let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,windspeed_10m,windgusts_10m,weathercode&current_weather=true&timezone=auto&forecast_days=7`
+let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,windspeed_10m,windgusts_10m,winddirection_10m,weathercode&current_weather=true&timezone=auto&forecast_days=7`
 
 let res=await fetch(url)
 
 weatherData=await res.json()
 
-document.getElementById("temp").innerHTML=
-weatherData.current_weather.temperature+"°C"
+let temp=weatherData.current_weather.temperature
+let wind=weatherData.current_weather.windspeed
+
+document.getElementById("temp").innerHTML=temp+"°C"
 
 document.getElementById("condition").innerHTML=
 decodeWeather(weatherData.current_weather.weathercode)
 
 document.getElementById("wind").innerHTML=
-"Wind "+weatherData.current_weather.windspeed+" km/h"
+"💨 Wind "+wind+" km/h"
 
 document.getElementById("location").innerHTML=
 lat.toFixed(3)+" , "+lon.toFixed(3)
 
+checkDroneSafety(temp,wind)
+
 showMode("hourly")
+
+}
+
+/* ================= DRONE SAFETY ================= */
+
+function checkDroneSafety(temp,wind){
+
+let el=document.getElementById("drone")
+
+if(wind>25){
+
+el.innerHTML="⚠ Drone NOT SAFE (Wind too strong)"
+el.className="notsafe"
+
+}else{
+
+el.innerHTML="✅ Drone SAFE to Fly"
+el.className="safe"
+
+}
 
 }
 
@@ -43,17 +67,13 @@ const w={
 3:"☁ Cloudy",
 
 45:"🌫 Fog",
-48:"🌫 Fog",
 
 51:"🌦 Drizzle",
 53:"🌦 Drizzle",
-55:"🌧 Heavy drizzle",
 
 61:"🌧 Rain",
 63:"🌧 Rain",
 65:"🌧 Heavy rain",
-
-71:"❄ Snow",
 
 95:"⛈ Thunderstorm"
 
@@ -131,13 +151,6 @@ container.appendChild(card)
 
 function getGPS(){
 
-if(!navigator.geolocation){
-
-alert("Browser tidak mendukung GPS")
-return
-
-}
-
 navigator.geolocation.getCurrentPosition(pos=>{
 
 lat=pos.coords.latitude
@@ -191,8 +204,6 @@ marker=new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* radar hujan */
-
 map.on("load",()=>{
 
 map.addSource("radar",{
@@ -209,13 +220,13 @@ tileSize:256
 
 map.addLayer({
 
-id:"radar-layer",
+id:"radar",
 
 type:"raster",
 
 source:"radar",
 
-paint:{'raster-opacity':0.6}
+paint:{'raster-opacity':0.65}
 
 })
 
