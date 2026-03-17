@@ -1,5 +1,6 @@
 let lastHeading = null
 let unstableCount = 0
+
 /* ================= GLOBAL ================= */
 
 let lat = 0
@@ -95,7 +96,6 @@ function openMasjidMode() {
 
 document.getElementById("masjidMode").style.display="block"
 
-/* jika belum ada lokasi */
 if (lat === 0 && lon === 0) {
 
 alert("Lokasi belum ditentukan.\nGunakan GPS atau pilih dari peta.")
@@ -108,7 +108,6 @@ clock.innerText = "LOKASI BELUM DISET"
 return
 }
 
-/* jika ada lokasi */
 calculatePrayerTimes(new Date())
 }
 
@@ -148,14 +147,12 @@ if(locEl){
 locEl.innerText = "Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
 }
 
-/* marker lokasi */
 if(marker) marker.remove()
 
 marker = new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* marker arah */
 if(directionMarker) directionMarker.remove()
 
 directionElement = document.createElement("div")
@@ -167,7 +164,6 @@ element:directionElement
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* update */
 calculatePrayerTimes(new Date())
 calculateQibla()
 startCompass()
@@ -227,7 +223,6 @@ let m=Math.floor((t-h)*60)
 return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
 }
 
-/* syuruq +15 menit */
 let sunriseMin=Math.floor(sunrise*60)+15
 let srH=Math.floor(sunriseMin/60)
 let srM=sunriseMin%60
@@ -242,13 +237,11 @@ maghrib:format(maghrib),
 isha:format(isha)
 }
 
-/* update UI */
 for(let id in timesToday){
 let el=document.getElementById(id)
 if(el) el.innerText=timesToday[id]
 }
 
-/* mode masjid */
 if(document.getElementById("mfajr")){
 document.getElementById("mfajr").innerText=timesToday.fajr
 document.getElementById("msunrise").innerText=timesToday.sunrise
@@ -329,7 +322,7 @@ let el=document.getElementById("qiblaAngle")
 if(el) el.innerText="Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 }
 
-/* ================= COMPASS ================= */
+/* ================= COMPASS (UPDATED) ================= */
 
 function startCompass(){
 
@@ -351,6 +344,32 @@ heading=(rawHeading+compassOffset+360)%360
 let el=document.getElementById("headingText")
 if(el) el.innerText="Arah Kompas "+heading.toFixed(1)+"°"
 
+/* ===== DETEKSI STABILITAS ===== */
+
+if(lastHeading!==null){
+
+let diff=Math.abs(heading-lastHeading)
+
+if(diff>20){
+unstableCount++
+}else{
+unstableCount=0
+}
+
+}
+
+let warn=document.getElementById("compassWarning")
+
+if(warn){
+if(unstableCount>=3){
+warn.innerText="⚠️ Kompas tidak stabil. Kalibrasi dengan gerakan angka 8"
+}else{
+warn.innerText=""
+}
+}
+
+lastHeading=heading
+
 updateCompass()
 
 },true)
@@ -364,6 +383,18 @@ if(needle) needle.setAttribute("transform","rotate("+heading+" 100 100)")
 
 let line=document.getElementById("qiblaLine")
 if(line) line.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
+
+/* ===== VALIDASI ARAH ===== */
+let warn=document.getElementById("compassWarning")
+
+if(warn){
+let diffQ=Math.abs(heading-qiblaDirection)
+if(diffQ>180) diffQ=360-diffQ
+
+if(diffQ>90){
+warn.innerText="⚠️ Arah tidak akurat. Lakukan kalibrasi"
+}
+}
 
 if(directionElement){
 directionElement.style.transform="rotate("+qiblaDirection+"deg)"
