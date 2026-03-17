@@ -8,48 +8,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
 <style>
-body{
-font-family:Arial;
-background:#f2f2f2;
-padding:40px;
-}
-.box{
-background:white;
-padding:25px;
-max-width:750px;
-margin:auto;
-border-radius:10px;
-box-shadow:0 0 15px rgba(0,0,0,0.1);
-}
-input,select,button{
-width:100%;
-padding:10px;
-margin-top:10px;
-}
-textarea{
-width:100%;
-height:120px;
-margin-top:10px;
-}
-button{
-background:#2b7cff;
-color:white;
-border:none;
-cursor:pointer;
-}
-button:hover{
-background:#1a5fd0;
-}
-#result{
-margin-top:20px;
-white-space:pre;
-font-family:monospace;
-}
-.example{
-font-size:13px;
-color:#666;
-margin-top:5px;
-}
+body{font-family:Arial;background:#f2f2f2;padding:40px;}
+.box{background:white;padding:25px;max-width:750px;margin:auto;border-radius:10px;box-shadow:0 0 15px rgba(0,0,0,0.1);}
+input,select,button{width:100%;padding:10px;margin-top:10px;}
+textarea{width:100%;height:120px;margin-top:10px;}
+button{background:#2b7cff;color:white;border:none;cursor:pointer;}
+button:hover{background:#1a5fd0;}
+#result{margin-top:20px;white-space:pre;font-family:monospace;}
 </style>
 </head>
 
@@ -57,11 +22,11 @@ margin-top:5px;
 
 <div class="box">
 
-<h2>Coordinate Converter</h2>
+<h2>Coordinate Converter (QC Version)</h2>
 
 <label>From</label>
 <select id="from">
-<option value="geo">Geodetic Decimal (Lat,Lon)</option>
+<option value="geo">Geodetic Decimal</option>
 <option value="utm">UTM</option>
 <option value="tm3">TM3</option>
 </select>
@@ -73,33 +38,19 @@ margin-top:5px;
 <option value="tm3">TM3</option>
 </select>
 
-<label>Manual Coordinates</label>
 <textarea id="manual" placeholder="-2.070877130,102.772954818"></textarea>
 
-<div class="example">
-Example manual input  
--2.070877130,102.772954818
-</div>
+<label>UTM Zone (optional)</label>
+<input id="utmzone" placeholder="48">
 
-<label>UTM Zone (contoh: 48)</label>
-<input id="utmzone" placeholder="contoh: 48">
+<label>TM3 Zone</label>
+<input id="tm3zone" placeholder="50.2">
 
-<label>TM3 Zone (contoh: 50.2)</label>
-<input id="tm3zone" placeholder="contoh: 50.2">
-
-<button onclick="convertManual()">Convert Manual</button>
+<button onclick="convertManual()">Convert</button>
 
 <hr>
 
-<label>Upload CSV</label>
 <input type="file" id="csv">
-
-<div class="example">
-CSV example  
-lat,lon  
--2.070877130,102.772954818
-</div>
-
 <button onclick="convertCSV()">Convert CSV</button>
 
 <div id="result"></div>
@@ -109,177 +60,171 @@ lat,lon
 <script>
 
 // =====================
-// UTM PROJECTION
+// UTM
 // =====================
-function buildUTMproj(zone){
-return "+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
+function buildUTMproj(zone, lat){
+let south = lat < 0 ? " +south" : "";
+return "+proj=utm +zone="+zone+south+" +datum=WGS84 +units=m +no_defs";
+}
+
+function autoUTMzone(lon){
+return Math.floor((lon + 180)/6) + 1;
 }
 
 // =====================
-// TM3 ZONE → CM (FIX)
+// TM3
 // =====================
 function parseTM3zone(zoneStr){
-
 let parts = zoneStr.split(".");
 let zone = parseInt(parts[0]);
 let sub = parts[1];
 
-if(isNaN(zone) || !sub) return null;
-
-// berbasis UTM
 let cm_utm = zone * 6 - 183;
 
-if(sub === "1") return cm_utm - 1.5;
-if(sub === "2") return cm_utm + 1.5;
+if(sub==="1") return cm_utm - 1.5;
+if(sub==="2") return cm_utm + 1.5;
 
 return null;
 }
 
-// =====================
-// GEO → TM3 ZONE
-// =====================
 function getTM3zone(lon){
-
-let utmZone = Math.floor((lon + 180)/6) + 1;
-let cm_utm = utmZone * 6 - 183;
-
-let sub = lon < cm_utm ? ".1" : ".2";
-
-return utmZone + sub;
+let z = autoUTMzone(lon);
+let cm = z*6 - 183;
+let sub = lon < cm ? ".1" : ".2";
+return z + sub;
 }
 
-// =====================
 function buildTM3proj(cm){
 return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 " +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
 }
 
 // =====================
-// CONVERSION ENGINE
+// QC
+// =====================
+function validateGeo(lat, lon){
+let msg="";
+if(lat<-90||lat>90) msg+="Lat error | ";
+if(lon<-180||lon>180) msg+="Lon error | ";
+if(lat>10||lat<-15||lon<90||lon>145) msg+="Out of Indonesia | ";
+return msg;
+}
+
+function validateUTM(e,n){
+let msg="";
+if(e<100000||e>900000) msg+="Easting error | ";
+if(n<0||n>10000000) msg+="Northing error | ";
+if(n<8000000) msg+="Zona/hemisphere salah | ";
+return msg;
+}
+
+function validateTM3(e,n){
+let msg="";
+if(e<0||e>400000) msg+="Easting TM3 error | ";
+if(n<1000000||n>2000000) msg+="Northing TM3 error | ";
+return msg;
+}
+
+// =====================
+// ENGINE
 // =====================
 function convertPoint(a,b,from,to){
 
-// GEO → GEO
-if(from==="geo" && to==="geo"){
-return a.toFixed(8)+","+b.toFixed(8);
+let warn="";
+
+if(from==="geo"){
+warn+=validateGeo(a,b);
 }
 
 // GEO → UTM
 if(from==="geo" && to==="utm"){
-let zone=Math.floor((b+180)/6)+1;
-let proj=buildUTMproj(zone);
-let p=proj4("EPSG:4326",proj,[b,a]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
+let zone=autoUTMzone(b);
+let p=proj4("EPSG:4326",buildUTMproj(zone,a),[b,a]);
+warn+=validateUTM(p[0],p[1]);
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+" auto) | "+warn;
 }
 
-// UTM → GEO (FIX)
+// UTM → GEO
 if(from==="utm" && to==="geo"){
 let zone=document.getElementById("utmzone").value;
 if(!zone) return "ISI UTM ZONE";
-let proj=buildUTMproj(zone);
-let p=proj4(proj,"EPSG:4326",[a,b]);
-return p[1].toFixed(8)+","+p[0].toFixed(8);
+warn+=validateUTM(a,b);
+let p=proj4(buildUTMproj(zone,-1),"EPSG:4326",[a,b]);
+return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
 }
 
 // GEO → TM3
 if(from==="geo" && to==="tm3"){
 let zone=getTM3zone(b);
 let cm=parseTM3zone(zone);
-let proj=buildTM3proj(cm);
-let p=proj4("EPSG:4326",proj,[b,a]);
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
+let p=proj4("EPSG:4326",buildTM3proj(cm),[b,a]);
+warn+=validateTM3(p[0],p[1]);
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+") | "+warn;
 }
 
 // TM3 → GEO
 if(from==="tm3" && to==="geo"){
-let zoneStr=document.getElementById("tm3zone").value;
-if(!zoneStr) return "ISI TM3 ZONE";
-let cm=parseTM3zone(zoneStr);
-let proj=buildTM3proj(cm);
-let p=proj4(proj,"EPSG:4326",[a,b]);
-return p[1].toFixed(8)+","+p[0].toFixed(8)+" (TM3 "+zoneStr+")";
+let zone=document.getElementById("tm3zone").value;
+if(!zone) return "ISI TM3 ZONE";
+warn+=validateTM3(a,b);
+let cm=parseTM3zone(zone);
+let p=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
+return p[1].toFixed(8)+","+p[0].toFixed(8)+" | "+warn;
 }
 
 // UTM → TM3
 if(from==="utm" && to==="tm3"){
-let utmZone=document.getElementById("utmzone").value;
-if(!utmZone) return "ISI UTM ZONE";
+let zone=document.getElementById("utmzone").value;
+if(!zone) return "ISI UTM ZONE";
 
-let utmProj=buildUTMproj(utmZone);
-let geo=proj4(utmProj,"EPSG:4326",[a,b]);
+let geo=proj4(buildUTMproj(zone,-1),"EPSG:4326",[a,b]);
 
-let lat=geo[1];
-let lon=geo[0];
+let tm3z=getTM3zone(geo[0]);
+let cm=parseTM3zone(tm3z);
 
-let tm3Zone=getTM3zone(lon);
-let cm=parseTM3zone(tm3Zone);
-
-let tm3Proj=buildTM3proj(cm);
-
-let p=proj4("EPSG:4326",tm3Proj,[lon,lat]);
-
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3Zone+")";
+let p=proj4("EPSG:4326",buildTM3proj(cm),[geo[0],geo[1]]);
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+tm3z+")";
 }
 
 // TM3 → UTM
 if(from==="tm3" && to==="utm"){
+let tm3z=document.getElementById("tm3zone").value;
+if(!tm3z) return "ISI TM3 ZONE";
 
-let tm3Zone=document.getElementById("tm3zone").value;
-let utmZone=document.getElementById("utmzone").value;
+let cm=parseTM3zone(tm3z);
+let geo=proj4(buildTM3proj(cm),"EPSG:4326",[a,b]);
 
-if(!tm3Zone || !utmZone) return "ISI TM3 & UTM ZONE";
+let utmZ=autoUTMzone(geo[0]);
+let p=proj4("EPSG:4326",buildUTMproj(utmZ,geo[1]),[geo[0],geo[1]]);
 
-let cm=parseTM3zone(tm3Zone);
-let tm3Proj=buildTM3proj(cm);
-
-let geo=proj4(tm3Proj,"EPSG:4326",[a,b]);
-
-let utmProj=buildUTMproj(utmZone);
-
-let p=proj4("EPSG:4326",utmProj,[geo[0],geo[1]]);
-
-return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZone+")";
+return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+utmZ+")";
 }
 
 return "conversion not defined";
 }
 
 // =====================
-// MANUAL
-// =====================
 function convertManual(){
-
-let text=document.getElementById("manual").value.trim();
-let lines=text.split("\n");
-
+let lines=document.getElementById("manual").value.trim().split("\n");
 let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out="";
-
 lines.forEach(l=>{
 let p=l.split(",");
 let a=parseFloat(p[0]);
 let b=parseFloat(p[1]);
 if(isNaN(a)||isNaN(b)) return;
-
-let r=convertPoint(a,b,from,to);
-out+=l+" → "+r+"\n";
+out+=l+" → "+convertPoint(a,b,from,to)+"\n";
 });
-
 document.getElementById("result").innerText=out;
 }
 
 // =====================
-// CSV (TIDAK DIUBAH)
-// =====================
 function convertCSV(){
 
 let file=document.getElementById("csv").files[0];
-if(!file){
-alert("Pilih file CSV terlebih dahulu");
-return;
-}
+if(!file){ alert("Pilih file CSV"); return; }
 
 Papa.parse(file,{
 header:true,
@@ -291,27 +236,25 @@ let from=document.getElementById("from").value;
 let to=document.getElementById("to").value;
 
 let out=[];
-let count=0;
+let ok=0, err=0;
 
 data.forEach(r=>{
-
-let lat=r.lat||r.latitude||r.y;
-let lon=r.lon||r.longitude||r.x;
-
-lat=parseFloat(lat);
-lon=parseFloat(lon);
+let lat=parseFloat(r.lat||r.y);
+let lon=parseFloat(r.lon||r.x);
 
 if(isNaN(lat)||isNaN(lon)) return;
 
+let qc=validateGeo(lat,lon);
+
+if(qc) err++; else ok++;
+
 let conv=convertPoint(lat,lon,from,to);
 
-out.push(lat+","+lon+" → "+conv);
-count++;
-
+out.push(lat+","+lon+" → "+conv+(qc?" ⚠️ "+qc:" | OK"));
 });
 
 document.getElementById("result").innerText=
-"Converted "+count+" points\n\n"+out.join("\n");
+"OK: "+ok+" | ERROR: "+err+"\n\n"+out.join("\n");
 
 downloadCSV(out);
 }
@@ -320,16 +263,14 @@ downloadCSV(out);
 
 // =====================
 function downloadCSV(rows){
-
 let csv="result\n";
-rows.forEach(r=>{csv+=r+"\n";});
+rows.forEach(r=>csv+=r+"\n");
 
 let blob=new Blob([csv]);
 let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
 a.download="converted.csv";
 a.click();
-
 }
 
 </script>
