@@ -24,8 +24,6 @@ Jadwal Shalat • Arah Kiblat
 
 <div class="panel">
 
-<!-- ================= BUTTON ================= -->
-
 <button onclick="getGPS()">GPS</button>
 <button onclick="useMapPoint()">Pilih dari Peta</button>
 <button onclick="openMasjidMode()">Mode Masjid</button>
@@ -39,13 +37,9 @@ Kalibrasi Kompas
 Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
 </div>
 
-<!-- ================= INFO ================= -->
-
 <div id="locationText">Lokasi: -</div>
 
 <h3 id="calendarText"></h3>
-
-<!-- ================= TABLE ================= -->
 
 <table id="prayTable">
 <tr>
@@ -66,8 +60,6 @@ Arahkan HP ke <b>Utara (kompas survey)</b> lalu tekan kalibrasi
 <td id="isha"></td>
 </tr>
 </table>
-
-<!-- ================= KIBLAT ================= -->
 
 <h3 style="text-align:center">Arah Kiblat</h3>
 
@@ -110,7 +102,8 @@ fill="red"
 
 <!-- ================= MODAL BULANAN ================= -->
 
-<div id="monthlyModal">
+<div id="monthlyModal" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%;">
+
 <div class="modalContent">
 
 <h2>Jadwal Shalat 1 Bulan</h2>
@@ -140,11 +133,12 @@ fill="red"
 <button onclick="closeMonthly()">Tutup</button>
 
 </div>
+
 </div>
 
 <!-- ================= MODE MASJID ================= -->
 
-<div id="masjidMode">
+<div id="masjidMode" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background:black;">
 
 <div id="masjidClock"></div>
 
