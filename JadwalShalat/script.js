@@ -1,3 +1,5 @@
+let lastHeading = null
+let unstableCount = 0
 /* ================= GLOBAL ================= */
 
 let lat = 0
