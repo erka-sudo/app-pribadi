@@ -15,12 +15,21 @@ let directionMarker = null
 let directionElement = null
 
 let compassStarted = false
-
 let compassOffset = 0
+
+let map = null
+
+/* ================= INIT ================= */
+
+window.onload = function () {
+initMap()
+}
 
 /* ================= MAP ================= */
 
-let map = new maplibregl.Map({
+function initMap(){
+
+map = new maplibregl.Map({
 container: "map",
 style: {
 version: 8,
@@ -66,6 +75,8 @@ marker = new maplibregl.Marker()
 
 })
 
+}
+
 /* ================= VALIDASI ================= */
 
 function checkLocation() {
@@ -82,7 +93,7 @@ function openMasjidMode() {
 
 document.getElementById("masjidMode").style.display="block"
 
-/* kalau belum ada lokasi */
+/* jika belum ada lokasi */
 if (lat === 0 && lon === 0) {
 
 alert("Lokasi belum ditentukan.\nGunakan GPS atau pilih dari peta.")
@@ -90,19 +101,16 @@ alert("Lokasi belum ditentukan.\nGunakan GPS atau pilih dari peta.")
 let clock = document.getElementById("masjidClock")
 if(clock){
 clock.innerText = "LOKASI BELUM DISET"
+}
 
-/* tetap tampil tapi kosong */
 return
 }
 
-/* kalau sudah ada lokasi */
+/* jika ada lokasi */
 calculatePrayerTimes(new Date())
 }
 
 function closeMasjidMode(){
-
-document.body.classList.remove("body-lock")
-
 document.getElementById("masjidMode").style.display="none"
 }
 
@@ -129,19 +137,23 @@ function setLocation(a, b) {
 lat = a
 lon = b
 
+if(map){
 map.flyTo({ center: [lon, lat], zoom: 14 })
+}
 
 let locEl = document.getElementById("locationText")
 if(locEl){
 locEl.innerText = "Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
 }
 
+/* marker lokasi */
 if(marker) marker.remove()
 
 marker = new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
+/* marker arah */
 if(directionMarker) directionMarker.remove()
 
 directionElement = document.createElement("div")
@@ -153,6 +165,7 @@ element:directionElement
 .setLngLat([lon,lat])
 .addTo(map)
 
+/* update */
 calculatePrayerTimes(new Date())
 calculateQibla()
 startCompass()
@@ -212,7 +225,7 @@ let m=Math.floor((t-h)*60)
 return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
 }
 
-/* ✅ SYURUQ +15 MENIT */
+/* syuruq +15 menit */
 let sunriseMin=Math.floor(sunrise*60)+15
 let srH=Math.floor(sunriseMin/60)
 let srM=sunriseMin%60
@@ -233,7 +246,7 @@ let el=document.getElementById(id)
 if(el) el.innerText=timesToday[id]
 }
 
-/* masjid */
+/* mode masjid */
 if(document.getElementById("mfajr")){
 document.getElementById("mfajr").innerText=timesToday.fajr
 document.getElementById("msunrise").innerText=timesToday.sunrise
@@ -376,17 +389,12 @@ function openMonthly(){
 
 if (!checkLocation()) return
 
-document.body.classList.add("body-lock")
-
 document.getElementById("monthlyModal").style.display="block"
 generateMonthly()
 
 }
 
 function closeMonthly(){
-
-document.body.classList.remove("body-lock")
-
 document.getElementById("monthlyModal").style.display="none"
 }
 
