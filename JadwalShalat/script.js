@@ -1,6 +1,3 @@
-let lastHeading = null
-let unstableCount = 0
-
 /* ================= GLOBAL ================= */
 
 let lat = 0
@@ -21,6 +18,13 @@ let compassStarted = false
 let compassOffset = 0
 
 let map = null
+
+/* ===== KOMPAS PRO ===== */
+let smoothHeading = 0
+let lastHeading = null
+let unstableCount = 0
+let sensorCounter = 0
+let sensorReady = false
 
 /* ================= INIT ================= */
 
@@ -290,19 +294,6 @@ break
 }
 }
 
-/* ================= CLOCK ================= */
-
-setInterval(()=>{
-let now=new Date()
-let h=now.getHours().toString().padStart(2,"0")
-let m=now.getMinutes().toString().padStart(2,"0")
-let s=now.getSeconds().toString().padStart(2,"0")
-
-let el=document.getElementById("masjidClock")
-if(el) el.innerText=h+":"+m+":"+s
-
-},1000)
-
 /* ================= KIBLAT ================= */
 
 function calculateQibla(){
@@ -322,79 +313,90 @@ let el=document.getElementById("qiblaAngle")
 if(el) el.innerText="Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 }
 
-/* ================= COMPASS (UPDATED) ================= */
+/* ================= KOMPAS PRO ================= */
 
 function startCompass(){
 
 if(compassStarted) return
 compassStarted=true
 
-window.addEventListener("deviceorientation",function(event){
+function handler(event){
 
 let rawHeading
 
 if(event.webkitCompassHeading){
-rawHeading=event.webkitCompassHeading
-}else if(event.alpha!==null){
-rawHeading=360-event.alpha
+rawHeading = event.webkitCompassHeading
+}else if(event.alpha !== null){
+rawHeading = 360 - event.alpha
 }else return
 
-heading=(rawHeading+compassOffset+360)%360
+/* warmup */
+sensorCounter++
+if(sensorCounter < 10) return
+sensorReady = true
 
-let el=document.getElementById("headingText")
-if(el) el.innerText="Arah Kompas "+heading.toFixed(1)+"°"
+/* auto calibrate awal */
+if(compassOffset === 0 && sensorReady){
+compassOffset = (360 - rawHeading) % 360
+}
 
-/* ===== DETEKSI STABILITAS ===== */
+/* smoothing */
+let newHeading = (rawHeading + compassOffset + 360) % 360
 
-if(lastHeading!==null){
+if(smoothHeading === 0){
+smoothHeading = newHeading
+}else{
+smoothHeading = smoothHeading + (newHeading - smoothHeading) * 0.2
+}
 
-let diff=Math.abs(heading-lastHeading)
+heading = smoothHeading
 
-if(diff>20){
+/* UI */
+let el = document.getElementById("headingText")
+if(el) el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
+
+/* stabilitas */
+if(lastHeading !== null){
+let diff = Math.abs(heading - lastHeading)
+if(diff > 20){
 unstableCount++
 }else{
-unstableCount=0
+unstableCount = 0
+}
 }
 
-}
-
-let warn=document.getElementById("compassWarning")
-
+let warn = document.getElementById("compassWarning")
 if(warn){
-if(unstableCount>=3){
-warn.innerText="⚠️ Kompas tidak stabil. Kalibrasi dengan gerakan angka 8"
+if(unstableCount >= 3){
+warn.innerText = "⚠️ Kompas tidak stabil. Gerakkan HP (angka 8)"
 }else{
-warn.innerText=""
+warn.innerText = ""
 }
 }
 
-lastHeading=heading
+lastHeading = heading
 
 updateCompass()
+}
 
-},true)
+/* dual listener */
+window.addEventListener("deviceorientationabsolute", handler, true)
+window.addEventListener("deviceorientation", handler, true)
 
 }
+
+/* ================= UPDATE VISUAL ================= */
 
 function updateCompass(){
 
 let needle=document.getElementById("compassNeedle")
 if(needle) needle.setAttribute("transform","rotate("+heading+" 100 100)")
 
+/* relative qibla (INI YANG BENAR) */
+let relative = qiblaDirection - heading
+
 let line=document.getElementById("qiblaLine")
-if(line) line.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
-
-/* ===== VALIDASI ARAH ===== */
-let warn=document.getElementById("compassWarning")
-
-if(warn){
-let diffQ=Math.abs(heading-qiblaDirection)
-if(diffQ>180) diffQ=360-diffQ
-
-if(diffQ>90){
-warn.innerText="⚠️ Arah tidak akurat. Lakukan kalibrasi"
-}
-}
+if(line) line.setAttribute("transform","rotate("+relative+" 100 100)")
 
 if(directionElement){
 directionElement.style.transform="rotate("+qiblaDirection+"deg)"
@@ -405,8 +407,20 @@ directionElement.style.transform="rotate("+qiblaDirection+"deg)"
 
 function calibrateCompass(){
 compassOffset=(360-heading)%360
-alert("Kalibrasi: "+compassOffset.toFixed(1)+"°")
+alert("Kalibrasi manual: "+compassOffset.toFixed(1)+"°")
 }
+
+/* ================= CLOCK ================= */
+
+setInterval(()=>{
+let now=new Date()
+let h=now.getHours().toString().padStart(2,"0")
+let m=now.getMinutes().toString().padStart(2,"0")
+let s=now.getSeconds().toString().padStart(2,"0")
+
+let el=document.getElementById("masjidClock")
+if(el) el.innerText=h+":"+m+":"+s
+},1000)
 
 /* ================= HIJRI ================= */
 
