@@ -16,7 +16,6 @@ let directionElement = null
 
 let compassStarted = false
 
-/* offset hasil kalibrasi */
 let compassOffset = 0
 
 /* ================= MAP ================= */
@@ -67,25 +66,21 @@ marker = new maplibregl.Marker()
 
 })
 
-/* ================= VALIDASI LOKASI ================= */
+/* ================= VALIDASI ================= */
 
 function checkLocation() {
 if (lat === 0 && lon === 0) {
-alert("Silakan tentukan lokasi terlebih dahulu (GPS atau pilih dari peta)")
+alert("Silakan tentukan lokasi terlebih dahulu")
 return false
 }
 return true
 }
 
-/* ================= FIX TAMBAHAN ================= */
+/* ================= UI ================= */
 
 function openMasjidMode() {
-
 if (!checkLocation()) return
-
 document.getElementById("masjidMode").style.display="block"
-
-/* pastikan data ada */
 calculatePrayerTimes(new Date())
 }
 
@@ -95,7 +90,7 @@ document.getElementById("masjidMode").style.display="none"
 
 function useMapPoint() {
 if (!selectedPoint) {
-alert("Klik peta dulu untuk memilih lokasi")
+alert("Klik peta dulu")
 return
 }
 setLocation(selectedPoint.lat, selectedPoint.lng)
@@ -118,17 +113,17 @@ lon = b
 
 map.flyTo({ center: [lon, lat], zoom: 14 })
 
-document.getElementById("locationText").innerText =
-"Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
+let locEl = document.getElementById("locationText")
+if(locEl){
+locEl.innerText = "Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
+}
 
-/* marker lokasi */
 if(marker) marker.remove()
 
 marker = new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* marker arah */
 if(directionMarker) directionMarker.remove()
 
 directionElement = document.createElement("div")
@@ -140,106 +135,94 @@ element:directionElement
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* hitung ulang */
 calculatePrayerTimes(new Date())
 calculateQibla()
-
-/* start kompas sekali saja */
 startCompass()
 }
 
-/* ================= MATEMATIKA ================= */
+/* ================= MATH ================= */
 
-function deg2rad(d) { return d * Math.PI / 180 }
-function rad2deg(r) { return r * 180 / Math.PI }
+function deg2rad(d){return d*Math.PI/180}
+function rad2deg(r){return r*180/Math.PI}
 
-function dayOfYear(d) {
-let start = new Date(d.getFullYear(), 0, 0)
-return Math.floor((d - start) / 86400000)
+function dayOfYear(d){
+let start=new Date(d.getFullYear(),0,0)
+return Math.floor((d-start)/86400000)
 }
 
-function solarDeclination(n) {
-return 23.45 * Math.sin(deg2rad((360 / 365) * (284 + n)))
+function solarDeclination(n){
+return 23.45*Math.sin(deg2rad((360/365)*(284+n)))
 }
 
-function equationOfTime(n) {
-let B = deg2rad((360 / 365) * (n - 81))
-return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B)
+function equationOfTime(n){
+let B=deg2rad((360/365)*(n-81))
+return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B)
 }
 
-function hourAngle(lat, dec, angle) {
-let num = Math.sin(deg2rad(angle)) - Math.sin(deg2rad(lat)) * Math.sin(deg2rad(dec))
-let den = Math.cos(deg2rad(lat)) * Math.cos(deg2rad(dec))
-return rad2deg(Math.acos(num / den))
+function hourAngle(lat,dec,angle){
+let num=Math.sin(deg2rad(angle))-Math.sin(deg2rad(lat))*Math.sin(deg2rad(dec))
+let den=Math.cos(deg2rad(lat))*Math.cos(deg2rad(dec))
+return rad2deg(Math.acos(num/den))
 }
 
 /* ================= SHALAT ================= */
 
-function calculatePrayerTimes(date) {
+function calculatePrayerTimes(date){
 
-let n = dayOfYear(date)
-let dec = solarDeclination(n)
-let eot = equationOfTime(n)
-let tz = -date.getTimezoneOffset() / 60
+let n=dayOfYear(date)
+let dec=solarDeclination(n)
+let eot=equationOfTime(n)
+let tz=-date.getTimezoneOffset()/60
 
-let dhuhr = 12 + (tz * 15 - lon) / 15 - eot / 60
+let dhuhr=12+(tz*15-lon)/15-eot/60
 
-let fajrAngle = -20
-let ishaAngle = -18
-let sunriseAngle = -0.833
+let fajr=dhuhr-hourAngle(lat,dec,-20)/15
+let sunrise=dhuhr-hourAngle(lat,dec,-0.833)/15
+let maghrib=dhuhr+hourAngle(lat,dec,-0.833)/15
+let isha=dhuhr+hourAngle(lat,dec,-18)/15
 
-let fajr = dhuhr - hourAngle(lat, dec, fajrAngle) / 15
-let sunrise = dhuhr - hourAngle(lat, dec, sunriseAngle) / 15
-let maghrib = dhuhr + hourAngle(lat, dec, sunriseAngle) / 15
-let isha = dhuhr + hourAngle(lat, dec, ishaAngle) / 15
+let latRad=deg2rad(lat)
+let decRad=deg2rad(dec)
 
-let latRad = deg2rad(lat)
-let decRad = deg2rad(dec)
+let g=Math.abs(latRad-decRad)
+let asrAngle=rad2deg(Math.atan(1/(1+Math.tan(g))))
+let asr=dhuhr+hourAngle(lat,dec,asrAngle)/15
 
-let g = Math.abs(latRad - decRad)
-let asrAngle = rad2deg(Math.atan(1 / (1 + Math.tan(g))))
-let asr = dhuhr + hourAngle(lat, dec, asrAngle) / 15
-
-function format(t) {
-let h = Math.floor(t)
-let m = Math.floor((t - h) * 60)
-return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2)
+function format(t){
+let h=Math.floor(t)
+let m=Math.floor((t-h)*60)
+return ("0"+h).slice(-2)+":"+("0"+m).slice(-2)
 }
 
-timesToday = {
-fajr: format(fajr),
-let sunriseMin = Math.floor(sunrise*60) + 15
-let srH = Math.floor(sunriseMin/60)
-let srM = sunriseMin % 60
+/* ✅ SYURUQ +15 MENIT */
+let sunriseMin=Math.floor(sunrise*60)+15
+let srH=Math.floor(sunriseMin/60)
+let srM=sunriseMin%60
+let sunriseFix=("0"+srH).slice(-2)+":"+("0"+srM).slice(-2)
 
-timesToday = {
-fajr: format(fajr),
-sunrise: ("0"+srH).slice(-2)+":"+("0"+srM).slice(-2),
-dhuhr: format(dhuhr),
-asr: format(asr),
-maghrib: format(maghrib),
-isha: format(isha)
-},
-dhuhr: format(dhuhr),
-asr: format(asr),
-maghrib: format(maghrib),
-isha: format(isha)
+timesToday={
+fajr:format(fajr),
+sunrise:sunriseFix,
+dhuhr:format(dhuhr),
+asr:format(asr),
+maghrib:format(maghrib),
+isha:format(isha)
 }
 
-/* update tampilan */
-for (let id in timesToday) {
-if (document.getElementById(id))
-document.getElementById(id).innerText = timesToday[id]
+/* update UI */
+for(let id in timesToday){
+let el=document.getElementById(id)
+if(el) el.innerText=timesToday[id]
 }
 
-/* mode masjid */
+/* masjid */
 if(document.getElementById("mfajr")){
-document.getElementById("mfajr").innerText = timesToday.fajr
-document.getElementById("msunrise").innerText = timesToday.sunrise
-document.getElementById("mdhuhr").innerText = timesToday.dhuhr
-document.getElementById("masr").innerText = timesToday.asr
-document.getElementById("mmaghrib").innerText = timesToday.maghrib
-document.getElementById("misha").innerText = timesToday.isha
+document.getElementById("mfajr").innerText=timesToday.fajr
+document.getElementById("msunrise").innerText=timesToday.sunrise
+document.getElementById("mdhuhr").innerText=timesToday.dhuhr
+document.getElementById("masr").innerText=timesToday.asr
+document.getElementById("mmaghrib").innerText=timesToday.maghrib
+document.getElementById("misha").innerText=timesToday.isha
 }
 
 highlightPrayer()
@@ -247,172 +230,134 @@ highlightPrayer()
 
 /* ================= HIGHLIGHT ================= */
 
-function highlightPrayer() {
+function highlightPrayer(){
 
-let now = new Date()
-let current = now.getHours()*60 + now.getMinutes()
+let now=new Date()
+let current=now.getHours()*60+now.getMinutes()
 
-let order = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
+let order=["fajr","sunrise","dhuhr","asr","maghrib","isha"]
 
-/* reset */
 document.querySelectorAll("#prayTable td")
-.forEach(td => td.classList.remove("activePrayer"))
+.forEach(td=>td.classList.remove("activePrayer"))
 
-for (let i = 0; i < order.length; i++) {
+for(let i=0;i<order.length;i++){
 
-let id = order[i]
-let next = order[i + 1]
+let id=order[i]
+let next=order[i+1]
 
-if (!timesToday[id]) continue
+if(!timesToday[id]) continue
 
-let t = timesToday[id].split(":")
-let start = parseInt(t[0])*60 + parseInt(t[1])
+let t=timesToday[id].split(":")
+let start=parseInt(t[0])*60+parseInt(t[1])
 
-let end = 1440
-if (next && timesToday[next]) {
-let nt = timesToday[next].split(":")
-end = parseInt(nt[0])*60 + parseInt(nt[1])
+let end=1440
+if(next && timesToday[next]){
+let nt=timesToday[next].split(":")
+end=parseInt(nt[0])*60+parseInt(nt[1])
 }
 
-/* kondisi aktif */
-if (current >= start && current < end) {
-let cell = document.getElementById(id)
-if (cell) cell.classList.add("activePrayer")
+if(current>=start && current<end){
+let cell=document.getElementById(id)
+if(cell) cell.classList.add("activePrayer")
 break
 }
 }
-
 }
 
 /* ================= CLOCK ================= */
 
-setInterval(() => {
+setInterval(()=>{
+let now=new Date()
+let h=now.getHours().toString().padStart(2,"0")
+let m=now.getMinutes().toString().padStart(2,"0")
+let s=now.getSeconds().toString().padStart(2,"0")
 
-let now = new Date()
+let el=document.getElementById("masjidClock")
+if(el) el.innerText=h+":"+m+":"+s
 
-let h = now.getHours().toString().padStart(2, "0")
-let m = now.getMinutes().toString().padStart(2, "0")
-let s = now.getSeconds().toString().padStart(2, "0")
-
-document.getElementById("masjidClock").innerText =
-h + ":" + m + ":" + s
-
-}, 1000)
+},1000)
 
 /* ================= KIBLAT ================= */
 
-function calculateQibla() {
+function calculateQibla(){
 
-const KAABA_LAT = 21.4225
-const KAABA_LON = 39.8262
+const KAABA_LAT=21.4225
+const KAABA_LON=39.8262
 
-let dLon = deg2rad(KAABA_LON - lon)
+let dLon=deg2rad(KAABA_LON-lon)
 
-let y = Math.sin(dLon) * Math.cos(deg2rad(KAABA_LAT))
+let y=Math.sin(dLon)*Math.cos(deg2rad(KAABA_LAT))
+let x=Math.cos(deg2rad(lat))*Math.sin(deg2rad(KAABA_LAT))-
+Math.sin(deg2rad(lat))*Math.cos(deg2rad(KAABA_LAT))*Math.cos(dLon)
 
-let x =
-Math.cos(deg2rad(lat)) * Math.sin(deg2rad(KAABA_LAT)) -
-Math.sin(deg2rad(lat)) * Math.cos(deg2rad(KAABA_LAT)) * Math.cos(dLon)
+qiblaDirection=(rad2deg(Math.atan2(y,x))+360)%360
 
-qiblaDirection = (rad2deg(Math.atan2(y, x)) + 360) % 360
-
-document.getElementById("qiblaAngle").innerText =
-"Arah Kiblat " + qiblaDirection.toFixed(1) + "°"
-
+let el=document.getElementById("qiblaAngle")
+if(el) el.innerText="Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 }
 
-/* ================= KOMPAS ================= */
+/* ================= COMPASS ================= */
 
-function startCompass() {
+function startCompass(){
 
-if (compassStarted) return
-compassStarted = true
+if(compassStarted) return
+compassStarted=true
 
-if (typeof DeviceOrientationEvent !== "undefined" &&
-typeof DeviceOrientationEvent.requestPermission === "function") {
-
-DeviceOrientationEvent.requestPermission()
-.then(res => {
-if (res === "granted") listenCompass()
-})
-
-} else {
-listenCompass()
-}
-
-}
-
-function listenCompass() {
-
-window.addEventListener("deviceorientation", function (event) {
+window.addEventListener("deviceorientation",function(event){
 
 let rawHeading
 
-if (event.webkitCompassHeading) {
-rawHeading = event.webkitCompassHeading
-}
-else if (event.alpha !== null) {
-rawHeading = 360 - event.alpha
-} else return
+if(event.webkitCompassHeading){
+rawHeading=event.webkitCompassHeading
+}else if(event.alpha!==null){
+rawHeading=360-event.alpha
+}else return
 
-heading = (rawHeading + compassOffset + 360) % 360
+heading=(rawHeading+compassOffset+360)%360
 
-document.getElementById("headingText").innerText =
-"Arah Kompas " + heading.toFixed(1) + "°"
+let el=document.getElementById("headingText")
+if(el) el.innerText="Arah Kompas "+heading.toFixed(1)+"°"
 
 updateCompass()
 
-}, true)
+},true)
 
 }
 
-/* ================= UPDATE VISUAL ================= */
+function updateCompass(){
 
-function updateCompass() {
+let needle=document.getElementById("compassNeedle")
+if(needle) needle.setAttribute("transform","rotate("+heading+" 100 100)")
 
-/* jarum kompas */
-document.getElementById("compassNeedle")
-.setAttribute("transform","rotate("+heading+" 100 100)")
+let line=document.getElementById("qiblaLine")
+if(line) line.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
 
-/* garis kiblat */
-document.getElementById("qiblaLine")
-.setAttribute("transform","rotate("+qiblaDirection+" 100 100)")
-
-/* marker map */
 if(directionElement){
 directionElement.style.transform="rotate("+qiblaDirection+"deg)"
 }
-
 }
 
 /* ================= KALIBRASI ================= */
 
-function calibrateCompass() {
-
-compassOffset = (360 - heading) % 360
-
-alert("Kalibrasi berhasil. Offset: " + compassOffset.toFixed(1) + "°")
-
+function calibrateCompass(){
+compassOffset=(360-heading)%360
+alert("Kalibrasi: "+compassOffset.toFixed(1)+"°")
 }
 
 /* ================= HIJRI ================= */
 
 function hijri(date){
-return new Intl.DateTimeFormat(
-'id-TN-u-ca-islamic',
-{day:'numeric',month:'long',year:'numeric'}
-).format(date)
+return new Intl.DateTimeFormat('id-TN-u-ca-islamic',{
+day:'numeric',month:'long',year:'numeric'
+}).format(date)
 }
 
 /* ================= BULANAN ================= */
 
 function openMonthly(){
-
 if (!checkLocation()) return
-
 document.getElementById("monthlyModal").style.display="block"
 generateMonthly()
-
 }
 
 function closeMonthly(){
@@ -420,8 +365,6 @@ document.getElementById("monthlyModal").style.display="none"
 }
 
 function generateMonthly(){
-
-console.log("Generate monthly:", lat, lon)
 
 let tbody=document.querySelector("#monthlyTable tbody")
 tbody.innerHTML=""
@@ -433,22 +376,12 @@ let month=now.getMonth()
 
 let days=new Date(year,month+1,0).getDate()
 
-for(let d=1; d<=days; d++){
+for(let d=1;d<=days;d++){
 
 let date=new Date(year,month,d)
 calculatePrayerTimes(date)
 
-/* syuruq +15 menit */
-let sunrise=timesToday.sunrise.split(":")
-let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
-
-let srH=Math.floor(srMin/60).toString().padStart(2,"0")
-let srM=(srMin%60).toString().padStart(2,"0")
-
-let syuruq=srH+":"+srM
-
 let tr=document.createElement("tr")
-
 let hari=date.toLocaleDateString("id-ID",{weekday:"long"})
 
 tr.innerHTML=`
@@ -456,18 +389,17 @@ tr.innerHTML=`
 <td>${date.getDate()}-${month+1}-${year}</td>
 <td>${hijri(date)}</td>
 <td>${timesToday.fajr}</td>
-<td>${syuruq}</td>
+<td>${timesToday.sunrise}</td>
 <td>${timesToday.dhuhr}</td>
 <td>${timesToday.asr}</td>
 <td>${timesToday.maghrib}</td>
 <td>${timesToday.isha}</td>
 `
 
-if(d === today){
+if(d===today){
 tr.classList.add("highlightToday")
 }
 
 tbody.appendChild(tr)
 }
-
 }
