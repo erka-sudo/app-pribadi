@@ -91,7 +91,6 @@ Example manual input
 -2.070877130,102.772954818
 </div>
 
-<!-- ✅ TAMBAHAN ZONA TM3 -->
 <label>TM3 Zone (contoh: 50.2)</label>
 <input id="tm3zone" placeholder="contoh: 50.2">
 
@@ -117,16 +116,18 @@ lat,lon
 <script>
 
 // =====================
-// TM3 ZONE → CENTRAL MERIDIAN
+// TM3 ZONE → CM (FIX BENAR)
 // =====================
 function parseTM3zone(zoneStr){
 
-let parts = zoneStr.split(".");
+let zone = parseInt(zoneStr.split(".")[0]);
 
-let zone = parseInt(parts[0]);
-let sub = parts[1] === "2" ? 1.5 : -1.5;
+if(isNaN(zone)){
+return null;
+}
 
-let cm = zone * 3 - 40.5 + sub;
+// 🔥 RUMUS BENAR
+let cm = zone * 3 - 40.5;
 
 return cm;
 
@@ -184,22 +185,26 @@ return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 
 // UTM → GEO
 if(from==="utm" && to==="geo"){
-let zone=48; // default (bisa dikembangkan)
+let zone=48;
 let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
 let p=proj4(proj,"EPSG:4326",[b,a]);
 return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
-// ✅ TM3 → GEO (FIX UTAMA)
+// ✅ TM3 → GEO (SUDAH BENAR)
 if(from==="tm3" && to==="geo"){
 
-let zoneStr = document.getElementById("tm3zone").value;
+let zoneStr = document.getElementById("tm3zone").value.trim();
 
 if(!zoneStr){
 return "ISI ZONA TM3 (contoh: 50.2)";
 }
 
 let cm = parseTM3zone(zoneStr);
+
+if(cm===null){
+return "FORMAT ZONA SALAH";
+}
 
 let proj = "+proj=tmerc +lat_0=0 +lon_0="+cm+
 " +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
