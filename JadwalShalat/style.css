@@ -1,3 +1,5 @@
+/* ================= GLOBAL ================= */
+
 body{
 margin:0;
 font-family:Segoe UI,Arial;
@@ -21,6 +23,8 @@ background:white;
 padding:14px;
 }
 
+/* ================= TABLE ================= */
+
 table{
 width:100%;
 border-collapse:collapse;
@@ -43,11 +47,111 @@ background:#ffd54f;
 font-weight:bold;
 }
 
-#compassContainer{
-width:220px;
-margin:auto;
-text-align:center;
+/* ================= BUTTON ================= */
+
+button{
+padding:8px 10px;
+margin:3px;
+border:none;
+background:#0b5ed7;
+color:white;
+border-radius:6px;
+cursor:pointer;
 }
+
+button:hover{
+background:#0949a8;
+}
+
+/* ================= KOMPAS PRO ================= */
+
+#compassPro{
+position:relative;
+width:240px;
+height:240px;
+margin:20px auto;
+border-radius:50%;
+}
+
+/* background kompas */
+.compass-dial{
+position:absolute;
+width:100%;
+height:100%;
+border-radius:50%;
+background:radial-gradient(circle, #ffffff 60%, #e0e0e0 100%);
+border:6px solid #333;
+box-shadow:0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* label arah */
+.compass-dial::after{
+content:"N     E     S     W";
+position:absolute;
+width:100%;
+top:10px;
+text-align:center;
+font-weight:bold;
+font-size:16px;
+letter-spacing:8px;
+}
+
+/* jarum utara */
+#needle{
+position:absolute;
+width:4px;
+height:100px;
+background:red;
+top:20px;
+left:50%;
+transform-origin:50% 80%;
+border-radius:2px;
+box-shadow:0 0 6px rgba(255,0,0,0.5);
+}
+
+/* panah kiblat */
+#qiblaArrow{
+position:absolute;
+width:6px;
+height:110px;
+background:green;
+top:15px;
+left:50%;
+transform-origin:50% 85%;
+border-radius:3px;
+box-shadow:0 0 6px rgba(0,128,0,0.5);
+}
+
+/* titik tengah */
+#compassPro::after{
+content:"";
+position:absolute;
+width:14px;
+height:14px;
+background:#000;
+border-radius:50%;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+z-index:10;
+}
+
+/* ================= MAP ARROW ================= */
+
+.directionArrow{
+
+width:0;
+height:0;
+
+border-left:10px solid transparent;
+border-right:10px solid transparent;
+border-bottom:20px solid red;
+
+transform-origin:50% 70%;
+
+}
+
+/* ================= MASJID MODE ================= */
 
 #masjidMode{
 display:none;
@@ -75,34 +179,7 @@ width:80%;
 margin:auto;
 }
 
-.directionArrow{
-
-width:0;
-height:0;
-
-border-left:10px solid transparent;
-border-right:10px solid transparent;
-border-bottom:20px solid red;
-
-transform-origin:50% 70%;
-
-}
-
-button{
-padding:8px 10px;
-margin:3px;
-border:none;
-background:#0b5ed7;
-color:white;
-border-radius:6px;
-cursor:pointer;
-}
-
-button:hover{
-background:#0949a8;
-}
-
-/* MODAL */
+/* ================= MODAL ================= */
 
 #monthlyModal{
 display:none;
@@ -138,69 +215,9 @@ padding:6px;
 font-size:14px;
 }
 
-/* highlight hari ini pada tabel bulanan */
+/* highlight hari ini */
 
 .highlightToday{
 background:#ffe082;
 font-weight:bold;
-}
-
-/* ================= KOMPAS PRO ================= */
-
-#compassPro{
-position:relative;
-width:240px;
-height:240px;
-margin:20px auto;
-border-radius:50%;
-}
-
-.compass-dial{
-position:absolute;
-width:100%;
-height:100%;
-border-radius:50%;
-background:radial-gradient(circle, #fff 60%, #ddd 100%);
-border:6px solid #333;
-}
-
-.compass-dial::after{
-content:"N     E     S     W";
-position:absolute;
-width:100%;
-top:10px;
-text-align:center;
-font-weight:bold;
-}
-
-#needle{
-position:absolute;
-width:4px;
-height:100px;
-background:red;
-top:20px;
-left:50%;
-transform-origin:50% 80%;
-}
-
-#qiblaArrow{
-position:absolute;
-width:6px;
-height:110px;
-background:green;
-top:15px;
-left:50%;
-transform-origin:50% 85%;
-}
-
-#compassPro::after{
-content:"";
-position:absolute;
-width:12px;
-height:12px;
-background:#000;
-border-radius:50%;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
 }
