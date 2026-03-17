@@ -364,7 +364,10 @@ for(let f in flights){
 let el=document.createElement("div")
 
 el.className="flight"
-el.innerText=f
+let jumlahFoto = flights[f].jpgs.length
+let jumlahPoint = flights[f].points.length
+
+el.innerText = `${f} (${jumlahFoto} foto / ${jumlahPoint} titik)`
 
 el.onclick=function(){
 
