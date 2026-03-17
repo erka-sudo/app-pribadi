@@ -19,9 +19,6 @@ let compassStarted = false
 /* offset hasil kalibrasi */
 let compassOffset = 0
 
-/* smoothing */
-let smoothHeading = 0
-
 /* ================= MAP ================= */
 
 let map = new maplibregl.Map({
@@ -114,6 +111,7 @@ element:directionElement
 calculatePrayerTimes(new Date())
 calculateQibla()
 
+/* start kompas sekali saja */
 startCompass()
 }
 
@@ -153,10 +151,14 @@ let tz = -date.getTimezoneOffset() / 60
 
 let dhuhr = 12 + (tz * 15 - lon) / 15 - eot / 60
 
-let fajr = dhuhr - hourAngle(lat, dec, -20) / 15
-let sunrise = dhuhr - hourAngle(lat, dec, -0.833) / 15
-let maghrib = dhuhr + hourAngle(lat, dec, -0.833) / 15
-let isha = dhuhr + hourAngle(lat, dec, -18) / 15
+let fajrAngle = -20
+let ishaAngle = -18
+let sunriseAngle = -0.833
+
+let fajr = dhuhr - hourAngle(lat, dec, fajrAngle) / 15
+let sunrise = dhuhr - hourAngle(lat, dec, sunriseAngle) / 15
+let maghrib = dhuhr + hourAngle(lat, dec, sunriseAngle) / 15
+let isha = dhuhr + hourAngle(lat, dec, ishaAngle) / 15
 
 let latRad = deg2rad(lat)
 let decRad = deg2rad(dec)
@@ -180,6 +182,7 @@ maghrib: format(maghrib),
 isha: format(isha)
 }
 
+/* update tampilan */
 for (let id in timesToday) {
 if (document.getElementById(id))
 document.getElementById(id).innerText = timesToday[id]
@@ -203,7 +206,7 @@ function highlightPrayer() {
 let now = new Date()
 let current = now.getHours() + ":" + now.getMinutes()
 
-let order = ["fajr","sunrise","dhuhr","asr","maghrib","isha"]
+let order = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
 
 for (let id of order) {
 
@@ -220,7 +223,7 @@ cell.classList.add("activePrayer")
 }
 }
 
-/* ================= CLOCK MASJID ================= */
+/* ================= CLOCK ================= */
 
 setInterval(() => {
 
@@ -234,14 +237,6 @@ document.getElementById("masjidClock").innerText =
 h + ":" + m + ":" + s
 
 }, 1000)
-
-function openMasjidMode() {
-document.getElementById("masjidMode").style.display = "block"
-}
-
-function closeMasjidMode() {
-document.getElementById("masjidMode").style.display = "none"
-}
 
 /* ================= KIBLAT ================= */
 
@@ -265,80 +260,66 @@ document.getElementById("qiblaAngle").innerText =
 
 }
 
-/* ================= KOMPAS STABIL FINAL ================= */
+/* ================= KOMPAS ================= */
 
 function startCompass() {
 
 if (compassStarted) return
 compassStarted = true
 
-window.addEventListener("deviceorientationabsolute", handleOrientation, true)
-window.addEventListener("deviceorientation", handleOrientation, true)
+if (typeof DeviceOrientationEvent !== "undefined" &&
+typeof DeviceOrientationEvent.requestPermission === "function") {
+
+DeviceOrientationEvent.requestPermission()
+.then(res => {
+if (res === "granted") listenCompass()
+})
+
+} else {
+listenCompass()
+}
 
 }
 
-function handleOrientation(event){
+function listenCompass() {
 
-let raw = null
+window.addEventListener("deviceorientation", function (event) {
 
-if (event.webkitCompassHeading !== undefined) {
-raw = event.webkitCompassHeading
-}
-else if (event.absolute === true && event.alpha !== null) {
-raw = 360 - event.alpha
+let rawHeading
+
+if (event.webkitCompassHeading) {
+rawHeading = event.webkitCompassHeading
 }
 else if (event.alpha !== null) {
-raw = 360 - event.alpha
-}
+rawHeading = 360 - event.alpha
+} else return
 
-if (raw === null) return
-
-/* ===== FIX CIRCULAR ===== */
-let delta = raw - heading
-
-if (delta > 180) delta -= 360
-if (delta < -180) delta += 360
-
-heading = heading + delta * 0.2
-heading = (heading + 360) % 360
-
-heading = (heading + compassOffset) % 360
+heading = (rawHeading + compassOffset + 360) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
 
 updateCompass()
+
+}, true)
+
 }
 
 /* ================= UPDATE VISUAL ================= */
 
-function updateCompass(){
+function updateCompass() {
 
-let d = heading - smoothHeading
+/* jarum kompas */
+document.getElementById("compassNeedle")
+.setAttribute("transform","rotate("+heading+" 100 100)")
 
-if (d > 180) d -= 360
-if (d < -180) d += 360
+/* garis kiblat RELATIF */
+let relativeQibla = (qiblaDirection - heading + 360) % 360
 
-smoothHeading = smoothHeading + d * 0.2
-smoothHeading = (smoothHeading + 360) % 360
+document.getElementById("qiblaLine")
+.setAttribute("transform","rotate("+relativeQibla+" 100 100)")
 
-let headingCSS = smoothHeading - 90
-
-let needle = document.getElementById("needle")
-if (needle) {
-needle.style.transform =
-"translateX(-50%) rotate(" + headingCSS + "deg)"
-}
-
-let relativeQibla = (qiblaDirection - smoothHeading + 360) % 360
-let qiblaCSS = relativeQibla - 90
-
-let qArrow = document.getElementById("qiblaArrow")
-if (qArrow) {
-qArrow.style.transform =
-"translateX(-50%) rotate(" + qiblaCSS + "deg)"
-}
-
+/* marker map */
 if(directionElement){
 directionElement.style.transform="rotate("+relativeQibla+"deg)"
 }
@@ -349,9 +330,13 @@ directionElement.style.transform="rotate("+relativeQibla+"deg)"
 
 function calibrateCompass() {
 
+/*
+User hadap utara survey grade
+*/
+
 compassOffset = (360 - heading) % 360
 
-alert("Kalibrasi OK")
+alert("Kalibrasi berhasil. Offset: " + compassOffset.toFixed(1) + "°")
 
 }
 
@@ -392,6 +377,7 @@ for(let d=1; d<=days; d++){
 let date=new Date(year,month,d)
 calculatePrayerTimes(date)
 
+/* syuruq +15 menit */
 let sunrise=timesToday.sunrise.split(":")
 let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
 
