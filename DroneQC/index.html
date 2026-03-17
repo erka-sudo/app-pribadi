@@ -17,16 +17,6 @@ body{font-family:Arial;margin:0;background:#f2f2f2;}
 gap:6px; /* sebelumnya 10px → terlalu jauh */
 }
 
-.info{
-font-size:13px;
-color:#333;
-font-weight:bold;
-white-space:nowrap;
-display:inline-flex;
-align-items:center;
-gap:4px;
-}
-
 #fileCount{
 color:#0a8f2a;
 font-weight:bold;
@@ -87,6 +77,18 @@ padding:4px;
 background:#fff2a8;
 }
 
+.file-group{
+display:flex;
+align-items:center;
+gap:4px; /* rapat banget */
+}
+
+.file-group span{
+white-space:nowrap;
+font-weight:bold;
+color:#0a8f2a;
+}
+
 </style>
 
 </head>
@@ -96,9 +98,10 @@ background:#fff2a8;
 
 <div class="topbar">
 
+<div class="file-group">
 <input type="file" id="folder" webkitdirectory multiple>
-
-<span class="info">| <span id="fileCount">0 JPG</span></span>
+<span id="fileCount">| 0 JPG</span>
+</div>
 
 <span>Threshold</span>
 <input id="threshold" value="0.05" size="6">
