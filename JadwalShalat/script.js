@@ -320,78 +320,58 @@ function startCompass(){
 if(compassStarted) return
 compassStarted = true
 
+/* ===== iOS PERMISSION ===== */
+if (typeof DeviceOrientationEvent !== "undefined" &&
+typeof DeviceOrientationEvent.requestPermission === "function") {
+
+DeviceOrientationEvent.requestPermission()
+.then(response => {
+
+if (response === "granted") {
+listenCompass()
+} else {
+alert("Izin kompas ditolak")
+}
+
+})
+.catch(console.error)
+
+} else {
+
+/* Android langsung */
+listenCompass()
+
+}
+
+}
+
+/* ================= LISTENER ================= */
+
+function listenCompass(){
+
 window.addEventListener("deviceorientation", function(event){
+
+console.log("alpha:", event.alpha)
 
 let rawHeading = null
 
-/* ===== iOS (PALING AKURAT) ===== */
 if(event.webkitCompassHeading !== undefined){
 rawHeading = event.webkitCompassHeading
 }
-
-/* ===== Android ===== */
 else if(event.alpha !== null){
-
-/*
-PENTING:
-alpha itu bukan true north
-jadi kita harus normalize
-*/
-
 rawHeading = 360 - event.alpha
 }
-
-/* tidak ada data */
-if(rawHeading === null) return
-
-/* ===== FILTER AWAL (BUANG NOISE) ===== */
-sensorCounter++
-if(sensorCounter < 5) return
-
-/* ===== SMOOTHING SUDUT ===== */
-if(smoothHeading === 0){
-smoothHeading = rawHeading
-}else{
-
-let diff = rawHeading - smoothHeading
-
-if(diff > 180) diff -= 360
-if(diff < -180) diff += 360
-
-smoothHeading += diff * 0.2
+else{
+return
 }
 
-/* ===== FINAL HEADING ===== */
-heading = (smoothHeading + compassOffset + 360) % 360
+/* ===== TANPA OFFSET DULU ===== */
+heading = rawHeading
 
-/* ===== UI ===== */
 let el = document.getElementById("headingText")
 if(el){
 el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
 }
-
-/* ===== WARNING ===== */
-let warn = document.getElementById("compassWarning")
-
-if(lastHeading !== null){
-let delta = Math.abs(heading - lastHeading)
-
-if(delta > 25){
-unstableCount++
-}else{
-unstableCount = 0
-}
-}
-
-if(warn){
-if(unstableCount >= 3){
-warn.innerText = "⚠️ Kompas tidak stabil. Gerakkan HP (angka 8)"
-}else{
-warn.innerText = ""
-}
-}
-
-lastHeading = heading
 
 updateCompass()
 
