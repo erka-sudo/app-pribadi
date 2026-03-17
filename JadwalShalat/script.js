@@ -320,7 +320,7 @@ function startCompass(){
 if(compassStarted) return
 compassStarted = true
 
-/* ===== iOS PERMISSION ===== */
+/* ===== iOS WAJIB PERMISSION ===== */
 if (typeof DeviceOrientationEvent !== "undefined" &&
 typeof DeviceOrientationEvent.requestPermission === "function") {
 
@@ -328,7 +328,7 @@ DeviceOrientationEvent.requestPermission()
 .then(response => {
 
 if (response === "granted") {
-listenCompass()
+initCompassListener()
 } else {
 alert("Izin kompas ditolak")
 }
@@ -338,10 +338,60 @@ alert("Izin kompas ditolak")
 
 } else {
 
-/* Android langsung */
-listenCompass()
+/* Android */
+initCompassListener()
 
 }
+
+}
+
+function initCompassListener(){
+
+window.addEventListener("deviceorientation", function(event){
+
+/* DEBUG WAJIB */
+let debug = document.getElementById("debugSensor")
+
+if(debug){
+debug.innerText =
+"alpha: " + event.alpha + "\n" +
+"webkit: " + event.webkitCompassHeading
+}
+
+/* ================= AMBIL HEADING ================= */
+
+let rawHeading = null
+
+/* iOS */
+if(event.webkitCompassHeading !== undefined){
+rawHeading = event.webkitCompassHeading
+}
+
+/* Android */
+else if(event.alpha !== null){
+rawHeading = 360 - event.alpha
+}
+
+/* kalau tidak ada data */
+if(rawHeading === null){
+return
+}
+
+/* ================= SIMPLIFY DULU ================= */
+/* TANPA SMOOTHING, TANPA OFFSET */
+
+heading = rawHeading
+
+/* tampil */
+let el = document.getElementById("headingText")
+if(el){
+el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
+}
+
+/* update visual */
+updateCompass()
+
+}, true)
 
 }
 
@@ -383,15 +433,13 @@ updateCompass()
 
 function updateCompass(){
 
-/* jarum = arah device */
+/* jarum */
 let needle = document.getElementById("compassNeedle")
 if(needle){
 needle.setAttribute("transform","rotate("+heading+" 100 100)")
 }
 
-/*
-KIBLAT HARUS RELATIF KE DEVICE
-*/
+/* kiblat RELATIF */
 let relative = qiblaDirection - heading
 
 let line = document.getElementById("qiblaLine")
