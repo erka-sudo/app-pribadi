@@ -1,3 +1,6 @@
+let headingReady = false
+let headingSamples = []
+
 /* ================= GLOBAL ================= */
 
 let lat = 0
@@ -334,26 +337,56 @@ else{
 return
 }
 
+/* ===== KUMPULKAN SAMPLE ===== */
+headingSamples.push(rawHeading)
+
+/* simpan max 10 sample */
+if(headingSamples.length > 10){
+headingSamples.shift()
+}
+
+/* cek stabil (selisih kecil) */
+if(headingSamples.length >= 5){
+
+let max = Math.max(...headingSamples)
+let min = Math.min(...headingSamples)
+
+if((max - min) < 5){
+headingReady = true
+}
+}
+
 /* DEBUG */
 let debug = document.getElementById("debugSensor")
 if(debug){
 debug.innerText =
-"alpha: " + event.alpha + "\n" +
-"heading raw: " + rawHeading
+"raw: " + rawHeading.toFixed(1) + "\n" +
+"ready: " + headingReady
 }
 
-/* ===== WAJIB KALIBRASI ===== */
-if(!isCalibrated){
+/* ===== BELUM STABIL ===== */
+if(!headingReady){
 
 let warn = document.getElementById("compassWarning")
 if(warn){
-warn.innerText = "⚠️ WAJIB kalibrasi: Arahkan HP ke UTARA lalu klik tombol Kalibrasi"
+warn.innerText = "⏳ Tunggu sensor stabil (gerakkan HP perlahan)"
 }
 
 return
 }
 
-/* ===== SETELAH KALIBRASI ===== */
+/* ===== BELUM KALIBRASI ===== */
+if(!isCalibrated){
+
+let warn = document.getElementById("compassWarning")
+if(warn){
+warn.innerText = "⚠️ Arahkan ke UTARA lalu klik Kalibrasi"
+}
+
+return
+}
+
+/* ===== NORMAL ===== */
 
 heading = (rawHeading + compassOffset + 360) % 360
 
@@ -461,7 +494,6 @@ if(needle){
 needle.setAttribute("transform","rotate("+heading+" 100 100)")
 }
 
-/* kiblat relatif */
 let relative = qiblaDirection - heading
 
 let line = document.getElementById("qiblaLine")
@@ -475,19 +507,23 @@ line.setAttribute("transform","rotate("+relative+" 100 100)")
 
 function calibrateCompass(){
 
-/*
-User HARUS hadap utara saat klik ini
-*/
+if(!headingReady){
+alert("Sensor belum stabil.\nGerakkan HP dulu 2-3 detik.")
+return
+}
 
-compassOffset = -heading
+/* gunakan raw terakhir */
+let raw = headingSamples[headingSamples.length - 1]
+
+compassOffset = -raw
 isCalibrated = true
 
 let warn = document.getElementById("compassWarning")
 if(warn){
-warn.innerText = "✅ Kompas aktif (sudah dikalibrasi)"
+warn.innerText = "✅ Kompas aktif"
 }
 
-alert("Kalibrasi berhasil.\nPastikan tadi HP menghadap UTARA.")
+alert("Kalibrasi berhasil.\nPastikan tadi menghadap UTARA.")
 }
 
 /* ================= CLOCK ================= */
