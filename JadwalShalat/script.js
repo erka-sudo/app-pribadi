@@ -19,6 +19,9 @@ let compassStarted = false
 /* offset hasil kalibrasi */
 let compassOffset = 0
 
+/* smoothing */
+let smoothHeading = 0
+
 /* ================= MAP ================= */
 
 let map = new maplibregl.Map({
@@ -305,19 +308,28 @@ updateCompass()
 
 }
 
-/* ================= UPDATE VISUAL ================= */
+/* ================= UPDATE VISUAL (PRO) ================= */
 
-function updateCompass() {
+function updateCompass(){
 
-/* jarum kompas */
-document.getElementById("compassNeedle")
-.setAttribute("transform","rotate("+heading+" 100 100)")
+/* smoothing */
+smoothHeading = smoothHeading * 0.8 + heading * 0.2
 
-/* garis kiblat RELATIF */
-let relativeQibla = (qiblaDirection - heading + 360) % 360
+/* jarum utara */
+let needle = document.getElementById("needle")
+if (needle) {
+needle.style.transform =
+"translateX(-50%) rotate(" + smoothHeading + "deg)"
+}
 
-document.getElementById("qiblaLine")
-.setAttribute("transform","rotate("+relativeQibla+" 100 100)")
+/* kiblat relatif */
+let relativeQibla = (qiblaDirection - smoothHeading + 360) % 360
+
+let qArrow = document.getElementById("qiblaArrow")
+if (qArrow) {
+qArrow.style.transform =
+"translateX(-50%) rotate(" + relativeQibla + "deg)"
+}
 
 /* marker map */
 if(directionElement){
@@ -329,10 +341,6 @@ directionElement.style.transform="rotate("+relativeQibla+"deg)"
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass() {
-
-/*
-User hadap utara survey grade
-*/
 
 compassOffset = (360 - heading) % 360
 
