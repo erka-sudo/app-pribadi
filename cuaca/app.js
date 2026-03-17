@@ -29,6 +29,9 @@ document.getElementById("gust").innerHTML=`⚡ gust ${w.wind_gusts_10m} km/h`
 
 checkDrone(w)
 
+/* 🔥 tambah penjelasan */
+generateExplanation(w)
+
 }
 
 /* ================= WEATHER TEXT ================= */
@@ -42,10 +45,10 @@ const map={
 3:"Berawan",
 45:"Kabut",
 51:"Gerimis",
-61:"Hujan",
+61:"Hujan Ringan",
 63:"Hujan",
 65:"Hujan Lebat",
-95:"Badai"
+95:"Potensi Badai"
 }
 
 return map[code] || "Cuaca"
@@ -72,6 +75,83 @@ el.className="safe"
 
 }
 
+/* ================= PENJELASAN ================= */
+
+function generateExplanation(w){
+
+let main = ""
+let list = []
+
+/* MAIN SUMMARY */
+
+if(w.precipitation > 0.5){
+
+main = "Saat ini terjadi hujan dengan intensitas ringan hingga sedang."
+
+}else if(w.cloud_cover > 80){
+
+main = "Langit tertutup awan tebal, cahaya matahari sangat terbatas."
+
+}else if(w.cloud_cover > 50){
+
+main = "Kondisi cukup berawan dengan cahaya matahari berkurang."
+
+}else{
+
+main = "Cuaca relatif cerah dengan cahaya matahari cukup kuat."
+
+}
+
+/* DETAIL */
+
+list.push(`Suhu udara ${w.temperature_2m}°C tergolong normal untuk wilayah tropis.`)
+
+list.push(`Kecepatan angin ${w.wind_speed_10m} km/h dari arah ${Math.round(w.wind_direction_10m)}° termasuk ${getWindLevel(w.wind_speed_10m)}.`)
+
+list.push(`Hembusan maksimum (gust) mencapai ${w.wind_gusts_10m} km/h.`)
+
+list.push(`Curah hujan ${w.precipitation} mm menunjukkan ${getRainLevel(w.precipitation)}.`)
+
+list.push(`Tutupan awan ${w.cloud_cover}% menyebabkan intensitas cahaya ${getLightLevel(w.cloud_cover)}.`)
+
+/* OUTPUT */
+
+document.getElementById("descMain").innerText = main
+
+let ul = document.getElementById("descList")
+ul.innerHTML = ""
+
+list.forEach(text=>{
+let li = document.createElement("li")
+li.innerText = text
+ul.appendChild(li)
+})
+
+}
+
+/* ================= INTERPRETASI ================= */
+
+function getWindLevel(wind){
+if(wind < 5) return "sangat lemah"
+if(wind < 15) return "lemah"
+if(wind < 25) return "sedang"
+return "kuat"
+}
+
+function getRainLevel(rain){
+if(rain < 0.1) return "tidak ada hujan"
+if(rain < 0.5) return "gerimis ringan"
+if(rain < 2) return "hujan ringan"
+return "hujan sedang"
+}
+
+function getLightLevel(cloud){
+if(cloud < 20) return "sangat tinggi (terik)"
+if(cloud < 50) return "cukup terang"
+if(cloud < 80) return "redup"
+return "rendah (tertutup awan)"
+}
+
 /* ================= MAP ================= */
 
 function initMap(){
@@ -92,11 +172,8 @@ marker=new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
-/* 🔥 penting: paksa render */
 map.on("load",()=>{
-setTimeout(()=>{
-map.resize()
-},200)
+setTimeout(()=>{ map.resize() },200)
 })
 
 }
