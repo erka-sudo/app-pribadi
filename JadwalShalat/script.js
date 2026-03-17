@@ -313,7 +313,7 @@ let el=document.getElementById("qiblaAngle")
 if(el) el.innerText="Arah Kiblat "+qiblaDirection.toFixed(1)+"°"
 }
 
-/* ================= KOMPAS PRO ================= */
+/* ================= KOMPAS FINAL (REAL DEVICE FOLLOW) ================= */
 
 function startCompass(){
 
@@ -322,39 +322,76 @@ compassStarted = true
 
 window.addEventListener("deviceorientation", function(event){
 
-let rawHeading
+let rawHeading = null
 
-/* iOS */
-if(event.webkitCompassHeading){
+/* ===== iOS (PALING AKURAT) ===== */
+if(event.webkitCompassHeading !== undefined){
 rawHeading = event.webkitCompassHeading
 }
-/* Android */
+
+/* ===== Android ===== */
 else if(event.alpha !== null){
+
+/*
+PENTING:
+alpha itu bukan true north
+jadi kita harus normalize
+*/
+
 rawHeading = 360 - event.alpha
 }
-else return
 
-/* TANPA OFFSET */
-let newHeading = rawHeading
+/* tidak ada data */
+if(rawHeading === null) return
 
-/* smoothing khusus sudut */
+/* ===== FILTER AWAL (BUANG NOISE) ===== */
+sensorCounter++
+if(sensorCounter < 5) return
+
+/* ===== SMOOTHING SUDUT ===== */
 if(smoothHeading === 0){
-smoothHeading = newHeading
+smoothHeading = rawHeading
 }else{
 
-let diff = newHeading - smoothHeading
+let diff = rawHeading - smoothHeading
 
 if(diff > 180) diff -= 360
 if(diff < -180) diff += 360
 
-smoothHeading += diff * 0.15
+smoothHeading += diff * 0.2
 }
 
-heading = (smoothHeading + 360) % 360
+/* ===== FINAL HEADING ===== */
+heading = (smoothHeading + compassOffset + 360) % 360
 
-/* tampil */
+/* ===== UI ===== */
 let el = document.getElementById("headingText")
-if(el) el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
+if(el){
+el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
+}
+
+/* ===== WARNING ===== */
+let warn = document.getElementById("compassWarning")
+
+if(lastHeading !== null){
+let delta = Math.abs(heading - lastHeading)
+
+if(delta > 25){
+unstableCount++
+}else{
+unstableCount = 0
+}
+}
+
+if(warn){
+if(unstableCount >= 3){
+warn.innerText = "⚠️ Kompas tidak stabil. Gerakkan HP (angka 8)"
+}else{
+warn.innerText = ""
+}
+}
+
+lastHeading = heading
 
 updateCompass()
 
@@ -366,13 +403,15 @@ updateCompass()
 
 function updateCompass(){
 
-/* jarum ikut HP */
+/* jarum = arah device */
 let needle = document.getElementById("compassNeedle")
 if(needle){
 needle.setAttribute("transform","rotate("+heading+" 100 100)")
 }
 
-/* kiblat RELATIF terhadap HP */
+/*
+KIBLAT HARUS RELATIF KE DEVICE
+*/
 let relative = qiblaDirection - heading
 
 let line = document.getElementById("qiblaLine")
@@ -385,7 +424,8 @@ line.setAttribute("transform","rotate("+relative+" 100 100)")
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass(){
-compassOffset = (360 - heading) % 360
+compassOffset = -heading
+alert("Kalibrasi berhasil")
 }
 
 /* ================= CLOCK ================= */
