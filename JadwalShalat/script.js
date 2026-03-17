@@ -114,7 +114,6 @@ element:directionElement
 calculatePrayerTimes(new Date())
 calculateQibla()
 
-/* start kompas sekali saja */
 startCompass()
 }
 
@@ -154,14 +153,10 @@ let tz = -date.getTimezoneOffset() / 60
 
 let dhuhr = 12 + (tz * 15 - lon) / 15 - eot / 60
 
-let fajrAngle = -20
-let ishaAngle = -18
-let sunriseAngle = -0.833
-
-let fajr = dhuhr - hourAngle(lat, dec, fajrAngle) / 15
-let sunrise = dhuhr - hourAngle(lat, dec, sunriseAngle) / 15
-let maghrib = dhuhr + hourAngle(lat, dec, sunriseAngle) / 15
-let isha = dhuhr + hourAngle(lat, dec, ishaAngle) / 15
+let fajr = dhuhr - hourAngle(lat, dec, -20) / 15
+let sunrise = dhuhr - hourAngle(lat, dec, -0.833) / 15
+let maghrib = dhuhr + hourAngle(lat, dec, -0.833) / 15
+let isha = dhuhr + hourAngle(lat, dec, -18) / 15
 
 let latRad = deg2rad(lat)
 let decRad = deg2rad(dec)
@@ -185,7 +180,6 @@ maghrib: format(maghrib),
 isha: format(isha)
 }
 
-/* update tampilan */
 for (let id in timesToday) {
 if (document.getElementById(id))
 document.getElementById(id).innerText = timesToday[id]
@@ -209,7 +203,7 @@ function highlightPrayer() {
 let now = new Date()
 let current = now.getHours() + ":" + now.getMinutes()
 
-let order = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
+let order = ["fajr","sunrise","dhuhr","asr","maghrib","isha"]
 
 for (let id of order) {
 
@@ -299,16 +293,16 @@ raw = 360 - event.alpha
 
 if (raw === null) return
 
-/* crossing 360 */
+/* ===== FIX CIRCULAR ===== */
 let delta = raw - heading
+
 if (delta > 180) delta -= 360
 if (delta < -180) delta += 360
 
-/* smoothing stabil */
-heading = heading + delta * 0.15
+heading = heading + delta * 0.2
+heading = (heading + 360) % 360
 
-/* apply kalibrasi */
-heading = (heading + compassOffset + 360) % 360
+heading = (heading + compassOffset) % 360
 
 document.getElementById("headingText").innerText =
 "Arah Kompas " + heading.toFixed(1) + "°"
@@ -320,7 +314,13 @@ updateCompass()
 
 function updateCompass(){
 
-smoothHeading = smoothHeading + (heading - smoothHeading) * 0.2
+let d = heading - smoothHeading
+
+if (d > 180) d -= 360
+if (d < -180) d += 360
+
+smoothHeading = smoothHeading + d * 0.2
+smoothHeading = (smoothHeading + 360) % 360
 
 let headingCSS = smoothHeading - 90
 
@@ -392,7 +392,6 @@ for(let d=1; d<=days; d++){
 let date=new Date(year,month,d)
 calculatePrayerTimes(date)
 
-/* syuruq +15 menit */
 let sunrise=timesToday.sunrise.split(":")
 let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
 
