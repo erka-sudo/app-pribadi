@@ -208,7 +208,18 @@ return ("0" + h).slice(-2) + ":" + ("0" + m).slice(-2)
 
 timesToday = {
 fajr: format(fajr),
-sunrise: format(sunrise),
+let sunriseMin = Math.floor(sunrise*60) + 15
+let srH = Math.floor(sunriseMin/60)
+let srM = sunriseMin % 60
+
+timesToday = {
+fajr: format(fajr),
+sunrise: ("0"+srH).slice(-2)+":"+("0"+srM).slice(-2),
+dhuhr: format(dhuhr),
+asr: format(asr),
+maghrib: format(maghrib),
+isha: format(isha)
+},
 dhuhr: format(dhuhr),
 asr: format(asr),
 maghrib: format(maghrib),
@@ -239,23 +250,38 @@ highlightPrayer()
 function highlightPrayer() {
 
 let now = new Date()
-let current = now.getHours() + ":" + now.getMinutes()
+let current = now.getHours()*60 + now.getMinutes()
 
 let order = ["fajr", "sunrise", "dhuhr", "asr", "maghrib", "isha"]
 
-for (let id of order) {
-
-let cell = document.getElementById(id)
-if (!cell) continue
-
-if (current >= timesToday[id]) {
-
+/* reset */
 document.querySelectorAll("#prayTable td")
 .forEach(td => td.classList.remove("activePrayer"))
 
-cell.classList.add("activePrayer")
+for (let i = 0; i < order.length; i++) {
+
+let id = order[i]
+let next = order[i + 1]
+
+if (!timesToday[id]) continue
+
+let t = timesToday[id].split(":")
+let start = parseInt(t[0])*60 + parseInt(t[1])
+
+let end = 1440
+if (next && timesToday[next]) {
+let nt = timesToday[next].split(":")
+end = parseInt(nt[0])*60 + parseInt(nt[1])
+}
+
+/* kondisi aktif */
+if (current >= start && current < end) {
+let cell = document.getElementById(id)
+if (cell) cell.classList.add("activePrayer")
+break
 }
 }
+
 }
 
 /* ================= CLOCK ================= */
