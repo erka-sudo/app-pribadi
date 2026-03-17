@@ -22,6 +22,12 @@ color:#0a8f2a;
 font-weight:bold;
 }
 
+.info{
+font-size:13px;
+font-weight:bold;
+white-space:nowrap;
+}
+  
 .layout{
 display:flex;
 height:calc(100vh - 60px);
@@ -99,7 +105,15 @@ color:#0a8f2a;
 <div class="topbar">
 
 <div class="file-group">
-<input type="file" id="folder" webkitdirectory multiple>
+  
+<button onclick="document.getElementById('folder').click()">Choose Folder</button>
+<input type="file" id="folder" webkitdirectory multiple style="display:none">
+
+<span class="info">
+<span id="totalFile">0 files</span> | 
+<span id="fileCount">0 JPG</span>
+</span>
+  
 <span id="fileCount">| 0 JPG</span>
 </div>
 
@@ -276,6 +290,7 @@ jpgCount++
 }
 }
 
+document.getElementById("totalFile").innerText = files.length + " files"
 document.getElementById("fileCount").innerText = jpgCount + " JPG"
 
 })
