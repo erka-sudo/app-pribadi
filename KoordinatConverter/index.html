@@ -84,16 +84,16 @@ margin-top:5px;
 
 <label>Manual Coordinates</label>
 
-<textarea id="manual" placeholder="-2.070877130,102.772954818
--2.071000000,102.773200000"></textarea>
+<textarea id="manual" placeholder="-2.070877130,102.772954818"></textarea>
 
 <div class="example">
-
-Example manual input
-
+Example manual input  
 -2.070877130,102.772954818
-
 </div>
+
+<!-- ✅ TAMBAHAN ZONA TM3 -->
+<label>TM3 Zone (contoh: 50.2)</label>
+<input id="tm3zone" placeholder="contoh: 50.2">
 
 <button onclick="convertManual()">Convert Manual</button>
 
@@ -103,13 +103,9 @@ Example manual input
 <input type="file" id="csv">
 
 <div class="example">
-
-CSV example
-
-lat,lon
+CSV example  
+lat,lon  
 -2.070877130,102.772954818
--2.071000000,102.773200000
-
 </div>
 
 <button onclick="convertCSV()">Convert CSV</button>
@@ -121,13 +117,27 @@ lat,lon
 <script>
 
 // =====================
-// TM3 ZONE DETECTION
+// TM3 ZONE → CENTRAL MERIDIAN
 // =====================
+function parseTM3zone(zoneStr){
 
+let parts = zoneStr.split(".");
+
+let zone = parseInt(parts[0]);
+let sub = parts[1] === "2" ? 1.5 : -1.5;
+
+let cm = zone * 3 - 40.5 + sub;
+
+return cm;
+
+}
+
+// =====================
+// GEO → TM3
+// =====================
 function getTM3zone(lon){
 
 let zone = Math.floor((lon - 96) / 3) + 46;
-
 let cm = zone * 3 - 40.5;
 
 let part = lon < cm ? ".1" : ".2";
@@ -136,14 +146,9 @@ return zone + part;
 
 }
 
-// =====================
-// TM3 PROJECTION
-// =====================
-
 function getTM3proj(lon){
 
 let zone = Math.floor((lon - 96) / 3) + 46;
-
 let cm = zone * 3 - 40.5;
 
 return "+proj=tmerc +lat_0=0 +lon_0="+cm+
@@ -154,53 +159,54 @@ return "+proj=tmerc +lat_0=0 +lon_0="+cm+
 // =====================
 // CONVERSION ENGINE
 // =====================
-
 function convertPoint(a,b,from,to){
 
+// GEO → GEO
 if(from==="geo" && to==="geo"){
 return a.toFixed(8)+","+b.toFixed(8);
 }
 
+// GEO → UTM
 if(from==="geo" && to==="utm"){
-
 let zone=Math.floor((b+180)/6)+1;
-
 let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
-
 let p=proj4("EPSG:4326",proj,[b,a]);
-
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (UTM "+zone+")";
 }
 
+// GEO → TM3
 if(from==="geo" && to==="tm3"){
-
 let proj=getTM3proj(b);
-
 let p=proj4("EPSG:4326",proj,[b,a]);
-
 let zone=getTM3zone(b);
-
 return p[0].toFixed(3)+","+p[1].toFixed(3)+" (TM3 "+zone+")";
 }
 
+// UTM → GEO
 if(from==="utm" && to==="geo"){
-
-let zone=48;
-
+let zone=48; // default (bisa dikembangkan)
 let proj="+proj=utm +zone="+zone+" +datum=WGS84 +units=m +no_defs";
-
 let p=proj4(proj,"EPSG:4326",[b,a]);
-
 return p[1].toFixed(8)+","+p[0].toFixed(8);
 }
 
+// ✅ TM3 → GEO (FIX UTAMA)
 if(from==="tm3" && to==="geo"){
 
-let proj=getTM3proj(102);
+let zoneStr = document.getElementById("tm3zone").value;
+
+if(!zoneStr){
+return "ISI ZONA TM3 (contoh: 50.2)";
+}
+
+let cm = parseTM3zone(zoneStr);
+
+let proj = "+proj=tmerc +lat_0=0 +lon_0="+cm+
+" +k=0.9999 +x_0=200000 +y_0=1500000 +datum=WGS84 +units=m +no_defs";
 
 let p=proj4(proj,"EPSG:4326",[b,a]);
 
-return p[1].toFixed(8)+","+p[0].toFixed(8);
+return p[1].toFixed(8)+","+p[0].toFixed(8)+" (TM3 "+zoneStr+")";
 }
 
 return "conversion not defined";
@@ -208,13 +214,11 @@ return "conversion not defined";
 }
 
 // =====================
-// MANUAL CONVERSION
+// MANUAL
 // =====================
-
 function convertManual(){
 
 let text=document.getElementById("manual").value.trim();
-
 let lines=text.split("\n");
 
 let from=document.getElementById("from").value;
@@ -242,9 +246,8 @@ document.getElementById("result").innerText=out;
 }
 
 // =====================
-// CSV CONVERSION
+// CSV
 // =====================
-
 function convertCSV(){
 
 let file=document.getElementById("csv").files[0];
@@ -287,14 +290,6 @@ count++;
 
 });
 
-if(count===0){
-
-alert("Tidak ada koordinat valid di CSV.\nGunakan kolom lat,lon atau y,x");
-
-return;
-
-}
-
 document.getElementById("result").innerText=
 "Converted "+count+" points\n\n"+out.join("\n");
 
@@ -307,9 +302,8 @@ downloadCSV(out);
 }
 
 // =====================
-// DOWNLOAD CSV
+// DOWNLOAD
 // =====================
-
 function downloadCSV(rows){
 
 let csv="result\n";
