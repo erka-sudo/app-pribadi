@@ -76,7 +76,37 @@ background:rgba(0,0,0,0.6);
 height: 100%;
 overflow-y: auto;
 -webkit-overflow-scrolling: touch;
-padding: 20px;
+padding: 10px;
+}
+
+/* FIX TABLE MOBILE */
+.tableWrap {
+overflow-x: auto;
+}
+
+#monthlyTable {
+min-width: 700px;
+border-collapse: collapse;
+}
+
+#monthlyTable th,
+#monthlyTable td {
+white-space: nowrap;
+padding: 6px;
+font-size: 12px;
+}
+
+/* biar header tetap */
+#monthlyTable thead th {
+position: sticky;
+top: 0;
+background: #eef3ff;
+z-index: 2;
+}
+
+/* highlight hari ini */
+.highlightToday {
+background: #fff3cd;
 }
 
 .modalContent {
