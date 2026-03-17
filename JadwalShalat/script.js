@@ -320,28 +320,51 @@ function startCompass(){
 if(compassStarted) return
 compassStarted = true
 
-/* ===== iOS WAJIB PERMISSION ===== */
-if (typeof DeviceOrientationEvent !== "undefined" &&
-typeof DeviceOrientationEvent.requestPermission === "function") {
+window.addEventListener("deviceorientation", function(event){
 
-DeviceOrientationEvent.requestPermission()
-.then(response => {
+let rawHeading = null
 
-if (response === "granted") {
-initCompassListener()
-} else {
-alert("Izin kompas ditolak")
+if(event.webkitCompassHeading !== undefined){
+rawHeading = event.webkitCompassHeading
+}
+else if(event.alpha !== null){
+rawHeading = 360 - event.alpha
+}
+else{
+return
 }
 
-})
-.catch(console.error)
-
-} else {
-
-/* Android */
-initCompassListener()
-
+/* DEBUG */
+let debug = document.getElementById("debugSensor")
+if(debug){
+debug.innerText =
+"alpha: " + event.alpha + "\n" +
+"heading raw: " + rawHeading
 }
+
+/* ===== WAJIB KALIBRASI ===== */
+if(!isCalibrated){
+
+let warn = document.getElementById("compassWarning")
+if(warn){
+warn.innerText = "⚠️ WAJIB kalibrasi: Arahkan HP ke UTARA lalu klik tombol Kalibrasi"
+}
+
+return
+}
+
+/* ===== SETELAH KALIBRASI ===== */
+
+heading = (rawHeading + compassOffset + 360) % 360
+
+let el = document.getElementById("headingText")
+if(el){
+el.innerText = "Arah Kompas " + heading.toFixed(1) + "°"
+}
+
+updateCompass()
+
+}, true)
 
 }
 
@@ -433,13 +456,12 @@ updateCompass()
 
 function updateCompass(){
 
-/* jarum */
 let needle = document.getElementById("compassNeedle")
 if(needle){
 needle.setAttribute("transform","rotate("+heading+" 100 100)")
 }
 
-/* kiblat RELATIF */
+/* kiblat relatif */
 let relative = qiblaDirection - heading
 
 let line = document.getElementById("qiblaLine")
@@ -452,8 +474,20 @@ line.setAttribute("transform","rotate("+relative+" 100 100)")
 /* ================= KALIBRASI ================= */
 
 function calibrateCompass(){
+
+/*
+User HARUS hadap utara saat klik ini
+*/
+
 compassOffset = -heading
-alert("Kalibrasi berhasil")
+isCalibrated = true
+
+let warn = document.getElementById("compassWarning")
+if(warn){
+warn.innerText = "✅ Kompas aktif (sudah dikalibrasi)"
+}
+
+alert("Kalibrasi berhasil.\nPastikan tadi HP menghadap UTARA.")
 }
 
 /* ================= CLOCK ================= */
