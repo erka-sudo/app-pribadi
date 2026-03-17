@@ -91,12 +91,14 @@ map.flyTo({ center: [lon, lat], zoom: 14 })
 document.getElementById("locationText").innerText =
 "Lokasi: " + lat.toFixed(5) + "," + lon.toFixed(5)
 
+/* marker lokasi */
 if(marker) marker.remove()
 
 marker = new maplibregl.Marker()
 .setLngLat([lon,lat])
 .addTo(map)
 
+/* marker arah */
 if(directionMarker) directionMarker.remove()
 
 directionElement = document.createElement("div")
@@ -108,9 +110,11 @@ element:directionElement
 .setLngLat([lon,lat])
 .addTo(map)
 
+/* hitung ulang */
 calculatePrayerTimes(new Date())
 calculateQibla()
 
+/* start kompas sekali saja */
 startCompass()
 }
 
@@ -118,8 +122,6 @@ startCompass()
 
 function deg2rad(d) { return d * Math.PI / 180 }
 function rad2deg(r) { return r * 180 / Math.PI }
-
-/* ================= SHALAT ================= */
 
 function dayOfYear(d) {
 let start = new Date(d.getFullYear(), 0, 0)
@@ -140,6 +142,8 @@ let num = Math.sin(deg2rad(angle)) - Math.sin(deg2rad(lat)) * Math.sin(deg2rad(d
 let den = Math.cos(deg2rad(lat)) * Math.cos(deg2rad(dec))
 return rad2deg(Math.acos(num / den))
 }
+
+/* ================= SHALAT ================= */
 
 function calculatePrayerTimes(date) {
 
@@ -181,10 +185,19 @@ maghrib: format(maghrib),
 isha: format(isha)
 }
 
+/* update tampilan */
 for (let id in timesToday) {
 if (document.getElementById(id))
 document.getElementById(id).innerText = timesToday[id]
 }
+
+/* mode masjid */
+document.getElementById("mfajr").innerText = timesToday.fajr
+document.getElementById("msunrise").innerText = timesToday.sunrise
+document.getElementById("mdhuhr").innerText = timesToday.dhuhr
+document.getElementById("masr").innerText = timesToday.asr
+document.getElementById("mmaghrib").innerText = timesToday.maghrib
+document.getElementById("misha").innerText = timesToday.isha
 
 highlightPrayer()
 }
@@ -213,6 +226,29 @@ cell.classList.add("activePrayer")
 }
 }
 
+/* ================= CLOCK MASJID ================= */
+
+setInterval(() => {
+
+let now = new Date()
+
+let h = now.getHours().toString().padStart(2, "0")
+let m = now.getMinutes().toString().padStart(2, "0")
+let s = now.getSeconds().toString().padStart(2, "0")
+
+document.getElementById("masjidClock").innerText =
+h + ":" + m + ":" + s
+
+}, 1000)
+
+function openMasjidMode() {
+document.getElementById("masjidMode").style.display = "block"
+}
+
+function closeMasjidMode() {
+document.getElementById("masjidMode").style.display = "none"
+}
+
 /* ================= KIBLAT ================= */
 
 function calculateQibla() {
@@ -235,7 +271,7 @@ document.getElementById("qiblaAngle").innerText =
 
 }
 
-/* ================= KOMPAS STABIL ================= */
+/* ================= KOMPAS STABIL FINAL ================= */
 
 function startCompass() {
 
@@ -263,7 +299,7 @@ raw = 360 - event.alpha
 
 if (raw === null) return
 
-/* 🔥 HANDLE LOMPAT 360 */
+/* crossing 360 */
 let delta = raw - heading
 if (delta > 180) delta -= 360
 if (delta < -180) delta += 360
@@ -316,5 +352,76 @@ function calibrateCompass() {
 compassOffset = (360 - heading) % 360
 
 alert("Kalibrasi OK")
+
+}
+
+/* ================= HIJRI ================= */
+
+function hijri(date){
+return new Intl.DateTimeFormat(
+'id-TN-u-ca-islamic',
+{day:'numeric',month:'long',year:'numeric'}
+).format(date)
+}
+
+/* ================= BULANAN ================= */
+
+function openMonthly(){
+document.getElementById("monthlyModal").style.display="block"
+generateMonthly()
+}
+
+function closeMonthly(){
+document.getElementById("monthlyModal").style.display="none"
+}
+
+function generateMonthly(){
+
+let tbody=document.querySelector("#monthlyTable tbody")
+tbody.innerHTML=""
+
+let now=new Date()
+let today=now.getDate()
+let year=now.getFullYear()
+let month=now.getMonth()
+
+let days=new Date(year,month+1,0).getDate()
+
+for(let d=1; d<=days; d++){
+
+let date=new Date(year,month,d)
+calculatePrayerTimes(date)
+
+/* syuruq +15 menit */
+let sunrise=timesToday.sunrise.split(":")
+let srMin=parseInt(sunrise[0])*60+parseInt(sunrise[1])+15
+
+let srH=Math.floor(srMin/60).toString().padStart(2,"0")
+let srM=(srMin%60).toString().padStart(2,"0")
+
+let syuruq=srH+":"+srM
+
+let tr=document.createElement("tr")
+
+let hari=date.toLocaleDateString("id-ID",{weekday:"long"})
+
+tr.innerHTML=`
+<td>${hari}</td>
+<td>${date.getDate()}-${month+1}-${year}</td>
+<td>${hijri(date)}</td>
+<td>${timesToday.fajr}</td>
+<td>${syuruq}</td>
+<td>${timesToday.dhuhr}</td>
+<td>${timesToday.asr}</td>
+<td>${timesToday.maghrib}</td>
+<td>${timesToday.isha}</td>
+`
+
+if(d === today){
+tr.classList.add("highlightToday")
+}
+
+tbody.appendChild(tr)
+}
 
 }
