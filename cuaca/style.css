@@ -21,6 +21,7 @@ background:#1e293b;
 border-radius:10px;
 padding:12px;
 text-align:center;
+font-size:14px;
 }
 
 .rain{
@@ -48,10 +49,12 @@ background-position:-100px 500px;
 
 }
 
-.forecast-card{
-background:#1e293b;
-border-radius:10px;
-padding:12px;
-text-align:center;
-font-size:14px;
+.safe{
+color:#4ade80;
+font-weight:bold;
+}
+
+.notsafe{
+color:#f87171;
+font-weight:bold;
 }
