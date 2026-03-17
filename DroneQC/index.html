@@ -119,7 +119,10 @@ color:#555;
 
 <input type="file" id="folder" webkitdirectory multiple>
 
-<span class="info" id="fileCount">0 JPG</span>
+<span class="info">
+<span id="totalFile">0 files</span> | 
+<span id="fileCount">0 JPG</span>
+</span>
 
 <span>Threshold</span>
 <input id="threshold" value="0.05" size="6">
@@ -296,14 +299,12 @@ jpgCount++
 }
 }
 
+// tampilkan: 11923 files | 11683 JPG
+document.getElementById("totalFile").innerText = files.length + " files"
 document.getElementById("fileCount").innerText = jpgCount + " JPG"
 
 })
 
-let total = files.length
-document.getElementById("fileCount").innerText =
-`${jpgCount} JPG / ${total} total`
-  
 function loadProject(){
 
 const files=document.getElementById("folder").files
